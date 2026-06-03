@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tracker">
+<meta name="theme-color" content="#0b0c0e">
+<title>Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0b0c0e;
+    --surface:   #15171a;
+    --surface-2: #1d2024;
+    --border:    rgba(255,255,255,0.08);
+    --text:      #f2f3f4;
+    --muted:     #8b9097;
+    --accent:    #c6f04a;
+    --on-accent: #0b0c0e;
+    --danger:    #ff5f5f;
+    --radius:    14px;
+    --radius-sm: 8px;
+    --nav-h:     64px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top:    env(safe-area-inset-top, 0px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ── Layout ── */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-top: var(--safe-top);
+  }
+
+  #header {
+    padding: 20px 20px 12px;
+    flex-shrink: 0;
+  }
+
+  #header .greeting {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  #header .date {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  #views {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 0 calc(var(--nav-h) + var(--safe-bottom) + 16px);
+  }
+
+  .view { display: none; padding: 0 16px; }
+  .view.active { display: block; }
+
+  /* ── Bottom Nav ── */
+  #nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--nav-h) + var(--safe-bottom));
+    padding-bottom: var(--safe-bottom);
+    background: rgba(21,23,26,0.92);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: var(--nav-h);
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: color 0.15s;
+  }
+
+  .nav-btn.active { color: var(--accent); }
+
+  .nav-btn svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.8;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* ── Stat numbers ── */
+  .stat-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 42px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .stat-row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .stat-row .stat-box {
+    flex: 1;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 14px 12px;
+    border: 1px solid var(--border);
+  }
+
+  .stat-box .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .stat-box .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── Progress bar ── */
+  .progress-wrap {
+    background: var(--surface-2);
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.3s ease;
+    min-width: 2px;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 16px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: opacity 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .btn-ghost {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(255,95,95,0.3);
+  }
+
+  .btn-full { width: 100%; }
+
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── Section header ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    margin-top: 8px;
+  }
+
+  .section-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
+  /* ── Chips ── */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .chip {
+    padding: 6px 12px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: all 0.15s;
+  }
+
+  .chip:active { transform: scale(0.96); }
+
+  .chip.active {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-color: var(--accent);
+  }
+
+  /* ── Form elements ── */
+  .form-group { margin-bottom: 14px; }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 0 14px;
+    height: 46px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 15px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus { border-color: var(--accent); }
+
+  .form-input::placeholder { color: var(--muted); }
+
+  .form-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .form-row .form-group { flex: 1; }
+
+  /* ── Goal item ── */
+  .goal-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .goal-item.done { opacity: 0.5; }
+
+  .goal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .goal-title {
+    font-weight: 600;
+    font-size: 15px;
+    flex: 1;
+  }
+
+  .goal-title.done-text { text-decoration: line-through; }
+
+  .goal-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .goal-category {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+
+  .goal-deadline {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .goal-deadline.overdue { color: var(--danger); }
+
+  .goal-progress-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+    margin-bottom: 2px;
+  }
+
+  .goal-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .step-control {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .step-btn {
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: background 0.1s;
+  }
+
+  .step-btn:active { background: var(--border); transform: scale(0.95); }
+
+  .step-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 0 8px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* ── Sport log item ── */
+  .log-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 0 6px;
+  }
+
+  .log-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .log-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 99px;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+
+  .log-body { flex: 1; min-width: 0; }
+
+  .log-title {
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .log-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .log-delete {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+
+  /* ── Work timer ── */
+  .timer-display {
+    text-align: center;
+    padding: 28px 0 20px;
+  }
+
+  .timer-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 64px;
+    font-weight: 600;
+    letter-spacing: -2px;
+    line-height: 1;
+    color: var(--text);
+    transition: color 0.3s;
+  }
+
+  .timer-time.running { color: var(--accent); }
+
+  .timer-project {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+    min-height: 18px;
+  }
+
+  .timer-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: var(--on-accent);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    transition: transform 0.1s, background 0.2s;
+    box-shadow: 0 0 30px rgba(198,240,74,0.25);
+  }
+
+  .timer-btn:active { transform: scale(0.93); }
+  .timer-btn.running { background: var(--danger); box-shadow: 0 0 30px rgba(255,95,95,0.25); }
+
+  .timer-btn svg { width: 28px; height: 28px; }
+
+  /* ── Work project breakdown ── */
+  .breakdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .breakdown-label {
+    font-size: 13px;
+    width: 90px;
+    flex-shrink: 0;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .breakdown-bar-wrap {
+    flex: 1;
+    background: var(--surface-2);
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  .breakdown-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    opacity: 0.7;
+  }
+
+  .breakdown-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    width: 52px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── Modal / Bottom sheet ── */
+  #modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  #modal-overlay.open { display: flex; }
+
+  #modal-sheet {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    padding: 0 16px calc(16px + var(--safe-bottom));
+    max-height: 92vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  #modal-overlay.open #modal-sheet { transform: translateY(0); }
+
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    margin: 12px auto 18px;
+  }
+
+  .modal-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+
+  /* ── Inline quick-add ── */
+  .quick-add-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  /* ── Toggle / Checkbox ── */
+  .check-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+  }
+
+  .check-btn.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .check-btn svg { width: 14px; height: 14px; stroke: var(--on-accent); }
+
+  /* ── Empty state ── */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  /* ── Dashboard goal mini ── */
+  .dash-goal {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dash-goal:last-child { border-bottom: none; padding-bottom: 0; }
+  .dash-goal:first-child { padding-top: 0; }
+
+  .dash-goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .dash-goal-title { font-size: 13px; font-weight: 600; }
+
+  .dash-goal-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  /* ── Misc ── */
+  .text-accent { color: var(--accent); }
+  .text-muted  { color: var(--muted); }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .badge-accent { background: rgba(198,240,74,0.15); color: var(--accent); }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 14px 0;
+  }
+
+  .flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div class="greeting">Servus, King 👑</div>
+    <div class="date" id="header-date"></div>
+  </div>
+
+  <div id="views">
+    <!-- Dashboard -->
+    <div class="view active" id="view-dashboard">
+      <div class="section-header" style="margin-top:0">
+        <div class="section-title">Dashboard</div>
+      </div>
+
+      <div class="card" id="dash-work-card">
+        <div class="card-title">Arbeitszeit heute</div>
+        <div class="stat-num" id="dash-work-today">0h 0m</div>
+        <div class="stat-label" id="dash-work-label">— nicht getrackt</div>
+      </div>
+
+      <div class="stat-row" style="margin-bottom:12px">
+        <div class="stat-box">
+          <div class="num" id="dash-week-hours">0h</div>
+          <div class="lbl">Diese Woche Arbeit</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" id="dash-week-sport">0</div>
+          <div class="lbl">Einheiten Sport</div>
+        </div>
+      </div>
+
+      <div class="card" id="dash-goals-card">
+        <div class="card-title">Aktive Ziele</div>
+        <div id="dash-goals-list"></div>
+      </div>
+    </div>
+
+    <!-- Ziele -->
+    <div class="view" id="view-goals">
+      <div class="section-header" style="margin-top:0">
+        <div class="section-title">Ziele</div>
+        <button class="btn btn-primary" onclick="openGoalModal()" style="height:38px;font-size:13px">+ Neu</button>
+      </div>
+
+      <div id="goals-active-list"></div>
+
+      <div id="goals-done-section" style="display:none">
+        <div class="divider"></div>
+        <div class="card-title" style="margin-bottom:10px">Erledigt</div>
+        <div id="goals-done-list"></div>
+      </div>
+    </div>
+
+    <!-- Sport -->
+    <div class="view" id="view-sport">
+      <div class="section-header" style="margin-top:0">
+        <div class="section-title">Sport</div>
+      </div>
+
+      <div class="stat-row" style="margin-bottom:14px">
+        <div class="stat-box">
+          <div class="num" id="sport-week-count">0</div>
+          <div class="lbl">Einheiten diese Woche</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" id="sport-week-mins">0m</div>
+          <div class="lbl">Minuten diese Woche</div>
+        </div>
+      </div>
+
+      <!-- Quick Add -->
+      <div class="quick-add-card" id="sport-add-card">
+        <div class="card-title" style="margin-bottom:10px">Einheit loggen</div>
+        <div class="chips" id="sport-type-chips">
+          <div class="chip active" data-val="Krafttraining" onclick="selectSportChip(this)">💪 Kraft</div>
+          <div class="chip" data-val="Cardio" onclick="selectSportChip(this)">🏃 Cardio</div>
+          <div class="chip" data-val="Laufen" onclick="selectSportChip(this)">👟 Laufen</div>
+          <div class="chip" data-val="Fußball" onclick="selectSportChip(this)">⚽ Fußball</div>
+          <div class="chip" data-val="Mobility" onclick="selectSportChip(this)">🧘 Mobility</div>
+          <div class="chip" data-val="__custom__" onclick="selectSportChip(this)">+ Custom</div>
+        </div>
+        <div id="sport-custom-wrap" style="display:none; margin-bottom:12px">
+          <input class="form-input" id="sport-custom-input" placeholder="Sportart eingeben…" style="height:42px">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Dauer (Min)</label>
+            <input class="form-input" id="sport-dur" type="number" min="1" max="600" placeholder="60">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Datum</label>
+            <input class="form-input" id="sport-date" type="date">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notiz (optional)</label>
+          <input class="form-input" id="sport-note" placeholder="z. B. Brust + Rücken, PR Deadlift">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="addSportEntry()">Einheit speichern</button>
+      </div>
+
+      <div id="sport-log-list"></div>
+    </div>
+
+    <!-- Arbeit -->
+    <div class="view" id="view-work">
+      <div class="section-header" style="margin-top:0">
+        <div class="section-title">Arbeitszeit</div>
+      </div>
+
+      <!-- Timer Card -->
+      <div class="card">
+        <div class="card-title">Stoppuhr</div>
+
+        <div class="chips" id="work-project-chips">
+          <div class="chip active" data-val="LeftClick" onclick="selectWorkChip(this)">LeftClick</div>
+          <div class="chip" data-val="Schule" onclick="selectWorkChip(this)">Schule</div>
+          <div class="chip" data-val="Sonstiges" onclick="selectWorkChip(this)">Sonstiges</div>
+          <div class="chip" data-val="__custom__" onclick="selectWorkChip(this)">+ Custom</div>
+        </div>
+        <div id="work-custom-wrap" style="display:none; margin-bottom:12px">
+          <input class="form-input" id="work-custom-input" placeholder="Projekt eingeben…" style="height:42px">
+        </div>
+
+        <div class="timer-display">
+          <div class="timer-time" id="timer-display">00:00:00</div>
+          <div class="timer-project" id="timer-project-label"></div>
+        </div>
+
+        <button class="timer-btn" id="timer-btn" onclick="toggleTimer()">
+          <svg id="timer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Today + Week stats -->
+      <div class="stat-row" style="margin-bottom:12px">
+        <div class="stat-box">
+          <div class="num" id="work-today-total">0h</div>
+          <div class="lbl">Heute</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" id="work-week-total">0h</div>
+          <div class="lbl">Diese Woche</div>
+        </div>
+      </div>
+
+      <!-- Breakdown -->
+      <div class="card" id="work-breakdown-card">
+        <div class="card-title">Diese Woche — Projekte</div>
+        <div id="work-breakdown"></div>
+      </div>
+
+      <!-- Manual add -->
+      <div class="section-header">
+        <div class="section-title" style="font-size:15px">Manuell erfassen</div>
+        <button class="btn btn-ghost" onclick="openWorkModal()" style="height:36px;font-size:13px">+ Hinzufügen</button>
+      </div>
+
+      <!-- Sessions list -->
+      <div id="work-sessions-list"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav id="nav">
+    <button class="nav-btn active" data-view="dashboard" onclick="switchView('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+      Dashboard
+    </button>
+    <button class="nav-btn" data-view="goals" onclick="switchView('goals')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="1"/>
+      </svg>
+      Ziele
+    </button>
+    <button class="nav-btn" data-view="sport" onclick="switchView('sport')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+        <line x1="4" y1="22" x2="4" y2="15"/>
+      </svg>
+      Sport
+    </button>
+    <button class="nav-btn" data-view="work" onclick="switchView('work')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 15.5"/>
+      </svg>
+      Arbeit
+    </button>
+  </nav>
+</div>
+
+<!-- Modal Overlay -->
+<div id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div id="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  Helpers
+// ─────────────────────────────────────────────
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+
+function fmtDuration(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm ' + s + 's';
+  return s + 's';
+}
+
+function fmtHM(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return h + 'h ' + m + 'm';
+}
+
+function fmtTimer(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return String(h).padStart(2,'0') + ':' +
+    String(m).padStart(2,'0') + ':' +
+    String(s).padStart(2,'0');
+}
+
+function weekStart() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day; // Monday
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+
+function isThisWeek(dateStr) {
+  const ws = weekStart();
+  const d = new Date(dateStr + 'T00:00:00');
+  const we = new Date(ws); we.setDate(ws.getDate() + 7);
+  return d >= ws && d < we;
+}
+
+function isToday(dateStr) { return dateStr === todayStr(); }
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function daysUntil(dateStr) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const d = new Date(dateStr + 'T00:00:00');
+  return Math.round((d - now) / 86400000);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────
+//  State & Persistence
+// ─────────────────────────────────────────────
+const DEFAULT_STATE = {
+  goals: [],
+  sport: [],
+  work: [],
+  timer: { running: false, startedAt: null, project: '' }
+};
+
+let state = DEFAULT_STATE;
+
+function load() {
+  try {
+    const raw = localStorage.getItem('tracker-state');
+    if (raw) state = Object.assign({}, DEFAULT_STATE, JSON.parse(raw));
+  } catch(e) {
+    state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  }
+}
+
+function save() {
+  try {
+    localStorage.setItem('tracker-state', JSON.stringify(state));
+  } catch(e) {}
+}
+
+// ─────────────────────────────────────────────
+//  Navigation
+// ─────────────────────────────────────────────
+let currentView = 'dashboard';
+
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+  currentView = view;
+  document.getElementById('views').scrollTop = 0;
+  renderView(view);
+}
+
+function renderView(view) {
+  if (view === 'dashboard') renderDashboard();
+  else if (view === 'goals') renderGoals();
+  else if (view === 'sport') renderSport();
+  else if (view === 'work') renderWork();
+}
+
+// ─────────────────────────────────────────────
+//  Dashboard
+// ─────────────────────────────────────────────
+function renderDashboard() {
+  // Arbeitszeit heute (include running timer)
+  const todayWork = state.work
+    .filter(s => s.date === todayStr())
+    .reduce((sum,s) => sum + s.seconds, 0);
+  let liveToday = todayWork;
+  if (state.timer.running && state.timer.startedAt) {
+    const elapsed = Math.floor((Date.now() - state.timer.startedAt) / 1000);
+    liveToday += elapsed;
+  }
+  const el = document.getElementById('dash-work-today');
+  if (el) el.textContent = fmtHM(liveToday);
+  const lbl = document.getElementById('dash-work-label');
+  if (lbl) lbl.textContent = state.timer.running ? '● Stoppuhr läuft' : (liveToday > 0 ? 'heute erfasst' : '— nicht getrackt');
+  if (lbl && state.timer.running) lbl.style.color = 'var(--accent)';
+  else if (lbl) lbl.style.color = '';
+
+  // Week work
+  const weekWork = state.work
+    .filter(s => isThisWeek(s.date))
+    .reduce((sum,s) => sum + s.seconds, 0);
+  let liveWeek = weekWork;
+  if (state.timer.running && state.timer.startedAt && isThisWeek(todayStr())) {
+    liveWeek += Math.floor((Date.now() - state.timer.startedAt) / 1000);
+  }
+  const wh = document.getElementById('dash-week-hours');
+  if (wh) wh.textContent = fmtHM(liveWeek);
+
+  // Week sport
+  const ws = document.getElementById('dash-week-sport');
+  if (ws) ws.textContent = state.sport.filter(e => isThisWeek(e.date)).length;
+
+  // Goals
+  const goalsList = document.getElementById('dash-goals-list');
+  if (!goalsList) return;
+  const active = state.goals.filter(g => !g.done);
+  if (active.length === 0) {
+    goalsList.innerHTML = '<div class="empty" style="padding:16px 0">Noch keine aktiven Ziele</div>';
+    return;
+  }
+  goalsList.innerHTML = active.slice(0,5).map(g => {
+    const pct = g.target > 0 ? Math.min(100, Math.round(g.current / g.target * 100)) : (g.done ? 100 : 0);
+    const label = g.target > 0
+      ? pct + '% — ' + g.current + '/' + g.target + (g.unit ? ' ' + escHtml(g.unit) : '')
+      : (g.done ? 'Erledigt' : 'Offen');
+    return `<div class="dash-goal">
+      <div class="dash-goal-header">
+        <span class="dash-goal-title">${escHtml(g.title)}</span>
+        <span class="dash-goal-pct">${label}</span>
+      </div>
+      ${g.target > 0 ? `<div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+//  Goals
+// ─────────────────────────────────────────────
+const GOAL_CATEGORIES = ['Business','Finanzen','Fitness','Schule','Privat'];
+
+function renderGoals() {
+  const active = state.goals.filter(g => !g.done);
+  const done   = state.goals.filter(g => g.done);
+
+  const al = document.getElementById('goals-active-list');
+  if (active.length === 0) {
+    al.innerHTML = '<div class="empty"><div class="empty-icon">🎯</div>Noch keine Ziele — leg eines an!</div>';
+  } else {
+    al.innerHTML = active.map(goalHTML).join('');
+  }
+
+  const ds = document.getElementById('goals-done-section');
+  const dl = document.getElementById('goals-done-list');
+  if (done.length > 0) {
+    ds.style.display = 'block';
+    dl.innerHTML = done.map(goalHTML).join('');
+  } else {
+    ds.style.display = 'none';
+  }
+}
+
+function goalHTML(g) {
+  const pct = g.target > 0 ? Math.min(100, Math.round(g.current / g.target * 100)) : (g.done ? 100 : 0);
+  const isNumeric = g.target > 0;
+  let deadlineHtml = '';
+  if (g.deadline) {
+    const d = daysUntil(g.deadline);
+    const cls = d < 0 ? 'goal-deadline overdue' : 'goal-deadline';
+    const txt = d < 0 ? `${Math.abs(d)}d überfällig` : d === 0 ? 'Heute' : `noch ${d}d`;
+    deadlineHtml = `<span class="${cls}">${txt}</span>`;
+  }
+
+  const stepHtml = isNumeric && !g.done ? `
+    <div class="step-control">
+      <button class="step-btn" onclick="adjustGoal('${g.id}',-1)">−</button>
+      <span class="step-val">±${g.step||1}${g.unit ? ' '+escHtml(g.unit) : ''}</span>
+      <button class="step-btn" onclick="adjustGoal('${g.id}',1)">+</button>
+    </div>` : '';
+
+  const progressHtml = isNumeric ? `
+    <div class="goal-progress-text">${g.current} / ${g.target}${g.unit ? ' '+escHtml(g.unit) : ''} · ${pct}%</div>
+    <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>` : '';
+
+  return `<div class="goal-item${g.done?' done':''}">
+    <div class="goal-header">
+      <div>
+        <div class="goal-title${g.done?' done-text':''}">${escHtml(g.title)}</div>
+        <div class="goal-meta">
+          ${g.category ? `<span class="goal-category">${escHtml(g.category)}</span>` : ''}
+          ${deadlineHtml}
+        </div>
+      </div>
+      ${!isNumeric ? `<button class="check-btn${g.done?' checked':''}" onclick="toggleGoalDone('${g.id}')">
+        ${g.done ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+      </button>` : ''}
+    </div>
+    ${progressHtml}
+    <div class="goal-actions">
+      ${stepHtml}
+      ${isNumeric && !g.done ? `<button class="btn btn-ghost btn-icon" onclick="openEditStepModal('${g.id}')" style="font-size:16px" title="Schritt anpassen">⚙</button>` : ''}
+      ${isNumeric && !g.done ? `<button class="btn btn-ghost" style="height:36px;font-size:12px" onclick="markGoalDone('${g.id}')">✓ Erledigt</button>` : ''}
+      <button class="btn btn-ghost btn-icon" onclick="openEditGoalModal('${g.id}')" style="font-size:15px" title="Bearbeiten">✎</button>
+      <button class="btn btn-danger btn-icon" onclick="deleteGoal('${g.id}')" style="height:36px;width:36px;font-size:16px">×</button>
+    </div>
+  </div>`;
+}
+
+function openGoalModal(editId) {
+  const g = editId ? state.goals.find(x => x.id === editId) : null;
+  const catChips = GOAL_CATEGORIES.map(c =>
+    `<div class="chip${g&&g.category===c?' active':''}" data-val="${c}" onclick="selectChipInModal(this,'goal-cat-chips')">${c}</div>`
+  ).join('');
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-title">${g ? 'Ziel bearbeiten' : 'Neues Ziel'}</div>
+    <div class="form-group">
+      <label class="form-label">Titel</label>
+      <input class="form-input" id="g-title" placeholder="Was willst du erreichen?" value="${g ? escHtml(g.title) : ''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Kategorie</label>
+      <div class="chips" id="goal-cat-chips">${catChips}</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Zielwert (opt.)</label>
+        <input class="form-input" id="g-target" type="number" min="0" placeholder="0" value="${g && g.target ? g.target : ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Einheit (opt.)</label>
+        <input class="form-input" id="g-unit" placeholder="kg, €, …" value="${g && g.unit ? escHtml(g.unit) : ''}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Deadline (opt.)</label>
+      <input class="form-input" id="g-deadline" type="date" value="${g && g.deadline ? g.deadline : ''}">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveGoal('${editId||''}')">
+      ${g ? 'Speichern' : 'Ziel hinzufügen'}
+    </button>`;
+  openModal();
+}
+
+function selectChipInModal(el, groupId) {
+  document.querySelectorAll('#'+groupId+' .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function saveGoal(editId) {
+  const title = document.getElementById('g-title').value.trim();
+  if (!title) { document.getElementById('g-title').focus(); return; }
+  const catEl = document.querySelector('#goal-cat-chips .chip.active');
+  const category = catEl ? catEl.dataset.val : '';
+  const target = parseFloat(document.getElementById('g-target').value) || 0;
+  const unit   = document.getElementById('g-unit').value.trim();
+  const deadline = document.getElementById('g-deadline').value || '';
+
+  if (editId) {
+    const g = state.goals.find(x => x.id === editId);
+    if (g) {
+      g.title = title; g.category = category;
+      if (target > 0) { g.target = target; g.unit = unit; }
+      else { g.target = 0; }
+      g.deadline = deadline;
+    }
+  } else {
+    state.goals.unshift({
+      id: uid(), title, category, target,
+      current: 0, unit, deadline, done: false,
+      step: 1, createdAt: Date.now()
+    });
+  }
+  save(); closeModal(); renderGoals(); renderDashboard();
+}
+
+function adjustGoal(id, dir) {
+  const g = state.goals.find(x => x.id === id);
+  if (!g) return;
+  const step = g.step || 1;
+  g.current = Math.max(0, g.current + dir * step);
+  if (g.target > 0 && g.current >= g.target) g.done = true;
+  save(); renderGoals(); renderDashboard();
+}
+
+function openEditStepModal(id) {
+  const g = state.goals.find(x => x.id === id);
+  if (!g) return;
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-title">Aktuellen Wert anpassen</div>
+    <div class="form-group">
+      <label class="form-label">Aktueller Wert</label>
+      <input class="form-input" id="g-cur-val" type="number" value="${g.current}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Schrittgröße</label>
+      <input class="form-input" id="g-step-val" type="number" min="0.1" step="0.1" value="${g.step||1}">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveGoalStep('${id}')">Speichern</button>`;
+  openModal();
+}
+
+function saveGoalStep(id) {
+  const g = state.goals.find(x => x.id === id);
+  if (!g) return;
+  g.current = parseFloat(document.getElementById('g-cur-val').value) || 0;
+  g.step    = parseFloat(document.getElementById('g-step-val').value) || 1;
+  if (g.target > 0 && g.current >= g.target) g.done = true;
+  save(); closeModal(); renderGoals(); renderDashboard();
+}
+
+function openEditGoalModal(id) { openGoalModal(id); }
+
+function toggleGoalDone(id) {
+  const g = state.goals.find(x => x.id === id);
+  if (g) { g.done = !g.done; save(); renderGoals(); renderDashboard(); }
+}
+
+function markGoalDone(id) {
+  const g = state.goals.find(x => x.id === id);
+  if (g) { g.done = true; save(); renderGoals(); renderDashboard(); }
+}
+
+function deleteGoal(id) {
+  state.goals = state.goals.filter(x => x.id !== id);
+  save(); renderGoals(); renderDashboard();
+}
+
+// ─────────────────────────────────────────────
+//  Sport
+// ─────────────────────────────────────────────
+const SPORT_ICONS = {
+  'Krafttraining':'💪','Cardio':'🏃','Laufen':'👟',
+  'Fußball':'⚽','Mobility':'🧘'
+};
+
+function sportIcon(type) { return SPORT_ICONS[type] || '🏅'; }
+
+let selectedSportType = 'Krafttraining';
+
+function selectSportChip(el) {
+  document.querySelectorAll('#sport-type-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedSportType = el.dataset.val;
+  document.getElementById('sport-custom-wrap').style.display =
+    selectedSportType === '__custom__' ? 'block' : 'none';
+}
+
+function addSportEntry() {
+  let type = selectedSportType;
+  if (type === '__custom__') {
+    type = document.getElementById('sport-custom-input').value.trim();
+    if (!type) { document.getElementById('sport-custom-input').focus(); return; }
+  }
+  const dur  = parseInt(document.getElementById('sport-dur').value) || 0;
+  if (dur <= 0) { document.getElementById('sport-dur').focus(); return; }
+  const date = document.getElementById('sport-date').value || todayStr();
+  const note = document.getElementById('sport-note').value.trim();
+
+  state.sport.unshift({ id: uid(), type, duration: dur, date, note });
+  save();
+
+  // reset form
+  document.getElementById('sport-dur').value = '';
+  document.getElementById('sport-note').value = '';
+  document.getElementById('sport-date').value = todayStr();
+  document.getElementById('sport-custom-input').value = '';
+  document.getElementById('sport-custom-wrap').style.display = 'none';
+  document.querySelectorAll('#sport-type-chips .chip').forEach(c => c.classList.remove('active'));
+  document.querySelector('#sport-type-chips .chip[data-val="Krafttraining"]').classList.add('active');
+  selectedSportType = 'Krafttraining';
+
+  renderSport(); renderDashboard();
+}
+
+function deleteSportEntry(id) {
+  state.sport = state.sport.filter(x => x.id !== id);
+  save(); renderSport(); renderDashboard();
+}
+
+function renderSport() {
+  const weekEntries = state.sport.filter(e => isThisWeek(e.date));
+  const countEl = document.getElementById('sport-week-count');
+  if (countEl) countEl.textContent = weekEntries.length;
+  const minsEl = document.getElementById('sport-week-mins');
+  if (minsEl) {
+    const total = weekEntries.reduce((s,e) => s+e.duration, 0);
+    minsEl.textContent = total + 'm';
+  }
+
+  const listEl = document.getElementById('sport-log-list');
+  if (!listEl) return;
+  if (state.sport.length === 0) {
+    listEl.innerHTML = '<div class="empty"><div class="empty-icon">🏋️</div>Noch keine Einheiten</div>';
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  state.sport.forEach(e => {
+    if (!groups[e.date]) groups[e.date] = [];
+    groups[e.date].push(e);
+  });
+  const sorted = Object.keys(groups).sort((a,b) => b.localeCompare(a));
+
+  listEl.innerHTML = sorted.map(date => {
+    const label = isToday(date) ? 'Heute' : formatDate(date);
+    const items = groups[date].map(e => `
+      <div class="log-item">
+        <div class="log-icon">${sportIcon(e.type)}</div>
+        <div class="log-body">
+          <div class="log-title">${escHtml(e.type)} · ${e.duration} Min</div>
+          ${e.note ? `<div class="log-sub">${escHtml(e.note)}</div>` : ''}
+        </div>
+        <button class="log-delete" onclick="deleteSportEntry('${e.id}')">×</button>
+      </div>`).join('');
+    return `<div class="log-group-label">${label}</div>${items}`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+//  Work / Timer
+// ─────────────────────────────────────────────
+let timerInterval = null;
+let selectedWorkProject = 'LeftClick';
+
+function selectWorkChip(el) {
+  if (state.timer.running) return; // lock during run
+  document.querySelectorAll('#work-project-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedWorkProject = el.dataset.val;
+  document.getElementById('work-custom-wrap').style.display =
+    selectedWorkProject === '__custom__' ? 'block' : 'none';
+}
+
+function getTimerProject() {
+  if (selectedWorkProject === '__custom__') {
+    return document.getElementById('work-custom-input').value.trim() || 'Sonstiges';
+  }
+  return selectedWorkProject;
+}
+
+function toggleTimer() {
+  if (state.timer.running) {
+    // Stop
+    const elapsed = Math.floor((Date.now() - state.timer.startedAt) / 1000);
+    if (elapsed > 5) {
+      state.work.unshift({
+        id: uid(),
+        project: state.timer.project,
+        seconds: elapsed,
+        date: new Date(state.timer.startedAt).toISOString().split('T')[0],
+        ts: state.timer.startedAt
+      });
+    }
+    state.timer = { running: false, startedAt: null, project: '' };
+    save();
+    clearInterval(timerInterval); timerInterval = null;
+    updateTimerUI();
+    renderWork();
+    renderDashboard();
+  } else {
+    // Start
+    const proj = getTimerProject();
+    state.timer = { running: true, startedAt: Date.now(), project: proj };
+    save();
+    updateTimerUI();
+    startTimerInterval();
+  }
+}
+
+function startTimerInterval() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    updateTimerDisplay();
+    // update dashboard if visible
+    if (currentView === 'dashboard') renderDashboard();
+    // update work stats
+    const todayEl = document.getElementById('work-today-total');
+    const weekEl  = document.getElementById('work-week-total');
+    if (todayEl || weekEl) updateWorkStats();
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  if (!state.timer.running || !state.timer.startedAt) return;
+  const elapsed = Math.floor((Date.now() - state.timer.startedAt) / 1000);
+  const el = document.getElementById('timer-display');
+  if (el) el.textContent = fmtTimer(elapsed);
+}
+
+function updateTimerUI() {
+  const display   = document.getElementById('timer-display');
+  const projLabel = document.getElementById('timer-project-label');
+  const btn       = document.getElementById('timer-btn');
+  const icon      = document.getElementById('timer-icon');
+  if (!display) return;
+
+  if (state.timer.running) {
+    const elapsed = Math.floor((Date.now() - state.timer.startedAt) / 1000);
+    display.textContent = fmtTimer(elapsed);
+    display.classList.add('running');
+    if (projLabel) projLabel.textContent = state.timer.project;
+    if (btn) btn.classList.add('running');
+    if (icon) icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    // lock chips
+    document.querySelectorAll('#work-project-chips .chip').forEach(c => c.style.opacity = '0.4');
+    document.getElementById('work-custom-wrap').style.display = 'none';
+  } else {
+    display.textContent = '00:00:00';
+    display.classList.remove('running');
+    if (projLabel) projLabel.textContent = '';
+    if (btn) btn.classList.remove('running');
+    if (icon) icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    document.querySelectorAll('#work-project-chips .chip').forEach(c => c.style.opacity = '');
+  }
+}
+
+function updateWorkStats() {
+  const todaySecs = state.work
+    .filter(s => s.date === todayStr())
+    .reduce((sum,s) => sum + s.seconds, 0);
+  let liveToday = todaySecs;
+  if (state.timer.running && state.timer.startedAt) {
+    liveToday += Math.floor((Date.now() - state.timer.startedAt) / 1000);
+  }
+  const weekSecs = state.work
+    .filter(s => isThisWeek(s.date))
+    .reduce((sum,s) => sum + s.seconds, 0);
+  let liveWeek = weekSecs;
+  if (state.timer.running && state.timer.startedAt && isThisWeek(todayStr())) {
+    liveWeek += Math.floor((Date.now() - state.timer.startedAt) / 1000);
+  }
+  const todayEl = document.getElementById('work-today-total');
+  if (todayEl) todayEl.textContent = fmtHM(liveToday);
+  const weekEl = document.getElementById('work-week-total');
+  if (weekEl) weekEl.textContent = fmtHM(liveWeek);
+}
+
+function renderWork() {
+  updateTimerUI();
+  updateWorkStats();
+
+  // Breakdown
+  const breakdown = document.getElementById('work-breakdown');
+  const weekSessions = state.work.filter(s => isThisWeek(s.date));
+  if (breakdown) {
+    if (weekSessions.length === 0) {
+      breakdown.innerHTML = '<div class="text-muted" style="font-size:13px">Noch keine Sessions diese Woche</div>';
+    } else {
+      const byProject = {};
+      weekSessions.forEach(s => {
+        byProject[s.project] = (byProject[s.project]||0) + s.seconds;
+      });
+      const maxSec = Math.max(...Object.values(byProject));
+      breakdown.innerHTML = Object.entries(byProject)
+        .sort((a,b) => b[1]-a[1])
+        .map(([proj,secs]) => {
+          const pct = Math.round(secs/maxSec*100);
+          return `<div class="breakdown-item">
+            <div class="breakdown-label">${escHtml(proj)}</div>
+            <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${pct}%"></div></div>
+            <div class="breakdown-val">${fmtHM(secs)}</div>
+          </div>`;
+        }).join('');
+    }
+  }
+
+  // Sessions list
+  const listEl = document.getElementById('work-sessions-list');
+  if (!listEl) return;
+  if (state.work.length === 0) {
+    listEl.innerHTML = '<div class="empty"><div class="empty-icon">⏱️</div>Noch keine Sessions</div>';
+    return;
+  }
+
+  const groups = {};
+  state.work.forEach(s => {
+    if (!groups[s.date]) groups[s.date] = [];
+    groups[s.date].push(s);
+  });
+  const sorted = Object.keys(groups).sort((a,b) => b.localeCompare(a));
+
+  listEl.innerHTML = sorted.map(date => {
+    const label = isToday(date) ? 'Heute' : formatDate(date);
+    const items = groups[date].map(s => `
+      <div class="log-item">
+        <div class="log-icon">⏱</div>
+        <div class="log-body">
+          <div class="log-title">${escHtml(s.project)}</div>
+          <div class="log-sub">${fmtDuration(s.seconds)}</div>
+        </div>
+        <button class="log-delete" onclick="deleteWorkSession('${s.id}')">×</button>
+      </div>`).join('');
+    return `<div class="log-group-label">${label}</div>${items}`;
+  }).join('');
+}
+
+function deleteWorkSession(id) {
+  state.work = state.work.filter(x => x.id !== id);
+  save(); renderWork(); renderDashboard();
+}
+
+function openWorkModal() {
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-title">Session manuell erfassen</div>
+    <div class="form-group">
+      <label class="form-label">Projekt</label>
+      <input class="form-input" id="wm-project" placeholder="Projektname" value="LeftClick">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Stunden</label>
+        <input class="form-input" id="wm-hours" type="number" min="0" max="24" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Minuten</label>
+        <input class="form-input" id="wm-mins" type="number" min="0" max="59" placeholder="30">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Datum</label>
+      <input class="form-input" id="wm-date" type="date" value="${todayStr()}">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveWorkManual()">Session speichern</button>`;
+  openModal();
+}
+
+function saveWorkManual() {
+  const project = document.getElementById('wm-project').value.trim() || 'Sonstiges';
+  const h = parseInt(document.getElementById('wm-hours').value) || 0;
+  const m = parseInt(document.getElementById('wm-mins').value) || 0;
+  const seconds = h * 3600 + m * 60;
+  if (seconds <= 0) { document.getElementById('wm-hours').focus(); return; }
+  const date = document.getElementById('wm-date').value || todayStr();
+
+  state.work.unshift({ id: uid(), project, seconds, date, ts: Date.now() });
+  save(); closeModal(); renderWork(); renderDashboard();
+}
+
+// ─────────────────────────────────────────────
+//  Modal
+// ─────────────────────────────────────────────
+function openModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => overlay.classList.add('open'));
+}
+
+function closeModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.remove('open');
+  setTimeout(() => { overlay.style.display = 'none'; }, 300);
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+// ─────────────────────────────────────────────
+//  Init
+// ─────────────────────────────────────────────
+function initHeader() {
+  const el = document.getElementById('header-date');
+  if (el) {
+    el.textContent = new Date().toLocaleDateString('de-DE', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+  }
+}
+
+function initSportDate() {
+  const el = document.getElementById('sport-date');
+  if (el) el.value = todayStr();
+}
+
+function init() {
+  load();
+  initHeader();
+  initSportDate();
+  renderDashboard();
+
+  // Restore timer if was running
+  if (state.timer.running && state.timer.startedAt) {
+    // Re-sync chip selection
+    const proj = state.timer.project;
+    const matchChip = document.querySelector(`#work-project-chips .chip[data-val="${proj}"]`);
+    if (matchChip) {
+      document.querySelectorAll('#work-project-chips .chip').forEach(c => c.classList.remove('active'));
+      matchChip.classList.add('active');
+      selectedWorkProject = proj;
+    } else {
+      // custom
+      document.querySelectorAll('#work-project-chips .chip').forEach(c => c.classList.remove('active'));
+      document.querySelector('#work-project-chips .chip[data-val="__custom__"]').classList.add('active');
+      selectedWorkProject = '__custom__';
+      document.getElementById('work-custom-wrap').style.display = 'block';
+      document.getElementById('work-custom-input').value = proj;
+    }
+    startTimerInterval();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
