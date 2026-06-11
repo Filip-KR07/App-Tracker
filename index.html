@@ -185,6 +185,15 @@
     margin-top: 2px;
   }
 
+  .stat-box[onclick], .card[onclick] {
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .stat-box[onclick]:active, .card[onclick]:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+
   /* ── Progress bar ── */
   .progress-wrap {
     background: var(--surface-2);
@@ -743,24 +752,24 @@
         <div class="section-title">Dashboard</div>
       </div>
 
-      <div class="card" id="dash-work-card">
+      <div class="card" id="dash-work-card" onclick="switchView('work')" style="cursor:pointer">
         <div class="card-title">Arbeitszeit heute</div>
         <div class="stat-num" id="dash-work-today">0h 0m</div>
         <div class="stat-label" id="dash-work-label">— nicht getrackt</div>
       </div>
 
       <div class="stat-row" style="margin-bottom:12px">
-        <div class="stat-box">
+        <div class="stat-box" onclick="switchView('work')" style="cursor:pointer">
           <div class="num" id="dash-week-hours">0h</div>
           <div class="lbl">Diese Woche Arbeit</div>
         </div>
-        <div class="stat-box">
+        <div class="stat-box" onclick="switchView('sport')" style="cursor:pointer">
           <div class="num" id="dash-week-sport">0</div>
           <div class="lbl">Einheiten Sport</div>
         </div>
       </div>
 
-      <div class="card" id="dash-goals-card">
+      <div class="card" id="dash-goals-card" onclick="switchView('goals')" style="cursor:pointer">
         <div class="card-title">Aktive Ziele</div>
         <div id="dash-goals-list"></div>
       </div>
