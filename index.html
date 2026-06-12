@@ -761,7 +761,7 @@
 <body>
 <div id="app">
   <div id="header">
-    <div class="greeting">Servus, King 👑</div>
+    <div class="greeting">Hallo Meister 👑</div>
     <div class="date" id="header-date"></div>
   </div>
 
@@ -787,6 +787,11 @@
           <div class="num" id="dash-week-sport">0</div>
           <div class="lbl">Einheiten Sport</div>
         </div>
+      </div>
+
+      <div class="card" id="dash-earnings-card" onclick="switchView('finance')" style="cursor:pointer;display:none">
+        <div class="card-title">Verdienst diese Woche <span class="chevron">›</span></div>
+        <div class="stat-num" id="dash-earnings" style="color:var(--success)">€0</div>
       </div>
 
       <div class="card" id="dash-goals-card" onclick="switchView('goals')" style="cursor:pointer">
@@ -873,7 +878,7 @@
         <div class="card-title">Stoppuhr</div>
 
         <div class="chips" id="work-project-chips">
-          <div class="chip active" data-val="LeftClick" onclick="selectWorkChip(this)">LeftClick</div>
+          <div class="chip active" data-val="Arbeit" onclick="selectWorkChip(this)">Arbeit</div>
           <div class="chip" data-val="Schule" onclick="selectWorkChip(this)">Schule</div>
           <div class="chip" data-val="Sonstiges" onclick="selectWorkChip(this)">Sonstiges</div>
           <div class="chip" data-val="__custom__" onclick="selectWorkChip(this)">+ Custom</div>
@@ -921,6 +926,72 @@
       <!-- Sessions list -->
       <div id="work-sessions-list"></div>
     </div>
+
+    <!-- Finanzen -->
+    <div class="view" id="view-finance">
+      <div class="section-header" style="margin-top:0">
+        <div class="section-title">Finanzen</div>
+      </div>
+
+      <!-- Stundenlohn -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-title">Stundenlohn</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input class="form-input" id="hourly-rate-input" type="number" min="0" step="0.5" placeholder="0.00" style="flex:1">
+          <span style="font-size:17px;color:var(--muted)">€/h</span>
+          <button class="btn btn-primary" style="height:44px;font-size:15px" onclick="saveHourlyRate()">Speichern</button>
+        </div>
+        <div id="hourly-rate-display" style="font-size:13px;color:var(--muted);margin-top:8px"></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stat-row" style="margin-bottom:10px">
+        <div class="stat-box">
+          <div class="num" id="finance-earnings" style="color:var(--success)">€0</div>
+          <div class="lbl">Verdienst diese Woche</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" id="finance-balance" style="color:var(--accent)">€0</div>
+          <div class="lbl">Bilanz diesen Monat</div>
+        </div>
+      </div>
+      <div class="stat-row" style="margin-bottom:14px">
+        <div class="stat-box">
+          <div class="num" id="finance-income" style="color:var(--success)">€0</div>
+          <div class="lbl">Einnahmen diesen Monat</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" id="finance-expenses" style="color:var(--danger)">€0</div>
+          <div class="lbl">Ausgaben diesen Monat</div>
+        </div>
+      </div>
+
+      <!-- Quick Add -->
+      <div class="quick-add-card">
+        <div class="card-title" style="margin-bottom:10px">Eintrag hinzufügen</div>
+        <div class="chips" id="finance-type-chips">
+          <div class="chip active" data-val="income" onclick="selectFinanceChip(this)">💰 Einnahme</div>
+          <div class="chip" data-val="expense" onclick="selectFinanceChip(this)">💸 Ausgabe</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Betrag (€)</label>
+            <input class="form-input" id="finance-amount" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Datum</label>
+            <input class="form-input" id="finance-date" type="date">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Beschreibung (opt.)</label>
+          <input class="form-input" id="finance-desc" placeholder="z. B. Rechnung Kunde A">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="addFinanceEntry()">Eintrag speichern</button>
+      </div>
+
+      <div id="finance-list"></div>
+    </div>
   </div>
 
   <!-- Bottom Nav -->
@@ -950,6 +1021,12 @@
         <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 15.5"/>
       </svg>
       Arbeit
+    </button>
+    <button class="nav-btn" data-view="finance" onclick="switchView('finance')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+      Finanzen
     </button>
   </nav>
 </div>
@@ -1042,7 +1119,8 @@ const DEFAULT_STATE = {
   goals: [],
   sport: [],
   work: [],
-  timer: { running: false, startedAt: null, project: '' }
+  timer: { running: false, startedAt: null, project: '' },
+  finance: { hourlyRate: 0, entries: [] }
 };
 
 let state = DEFAULT_STATE;
@@ -1083,6 +1161,7 @@ function renderView(view) {
   else if (view === 'goals') renderGoals();
   else if (view === 'sport') renderSport();
   else if (view === 'work') renderWork();
+  else if (view === 'finance') renderFinance();
 }
 
 // ─────────────────────────────────────────────
@@ -1119,6 +1198,18 @@ function renderDashboard() {
   // Week sport
   const ws = document.getElementById('dash-week-sport');
   if (ws) ws.textContent = state.sport.filter(e => isThisWeek(e.date)).length;
+
+  // Finance earnings this week
+  const rate = state.finance ? state.finance.hourlyRate : 0;
+  if (rate > 0) {
+    const earningsEl = document.getElementById('dash-earnings');
+    if (earningsEl) earningsEl.textContent = '€' + (liveWeek / 3600 * rate).toFixed(0);
+    const earningsCard = document.getElementById('dash-earnings-card');
+    if (earningsCard) earningsCard.style.display = 'block';
+  } else {
+    const earningsCard = document.getElementById('dash-earnings-card');
+    if (earningsCard) earningsCard.style.display = 'none';
+  }
 
   // Goals
   const goalsList = document.getElementById('dash-goals-list');
@@ -1431,7 +1522,7 @@ function renderSport() {
 //  Work / Timer
 // ─────────────────────────────────────────────
 let timerInterval = null;
-let selectedWorkProject = 'LeftClick';
+let selectedWorkProject = 'Arbeit';
 
 function selectWorkChip(el) {
   if (state.timer.running) return; // lock during run
@@ -1615,7 +1706,7 @@ function openWorkModal() {
     <div class="modal-title">Session manuell erfassen</div>
     <div class="form-group">
       <label class="form-label">Projekt</label>
-      <input class="form-input" id="wm-project" placeholder="Projektname" value="LeftClick">
+      <input class="form-input" id="wm-project" placeholder="Projektname" value="Arbeit">
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -1667,6 +1758,123 @@ function handleOverlayClick(e) {
 }
 
 // ─────────────────────────────────────────────
+//  Finance
+// ─────────────────────────────────────────────
+let selectedFinanceType = 'income';
+
+function selectFinanceChip(el) {
+  document.querySelectorAll('#finance-type-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedFinanceType = el.dataset.val;
+}
+
+function saveHourlyRate() {
+  const val = parseFloat(document.getElementById('hourly-rate-input').value) || 0;
+  if (!state.finance) state.finance = { hourlyRate: 0, entries: [] };
+  state.finance.hourlyRate = val;
+  save();
+  renderFinance();
+  renderDashboard();
+}
+
+function addFinanceEntry() {
+  const amount = parseFloat(document.getElementById('finance-amount').value) || 0;
+  if (amount <= 0) { document.getElementById('finance-amount').focus(); return; }
+  const date = document.getElementById('finance-date').value || todayStr();
+  const desc = document.getElementById('finance-desc').value.trim();
+  if (!state.finance) state.finance = { hourlyRate: 0, entries: [] };
+  state.finance.entries.unshift({ id: uid(), type: selectedFinanceType, amount, date, desc });
+  save();
+  document.getElementById('finance-amount').value = '';
+  document.getElementById('finance-desc').value = '';
+  document.getElementById('finance-date').value = todayStr();
+  renderFinance();
+  renderDashboard();
+}
+
+function deleteFinanceEntry(id) {
+  if (!state.finance) return;
+  state.finance.entries = state.finance.entries.filter(e => e.id !== id);
+  save();
+  renderFinance();
+  renderDashboard();
+}
+
+function isThisMonth(dateStr) {
+  const now = new Date();
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+}
+
+function renderFinance() {
+  if (!state.finance) state.finance = { hourlyRate: 0, entries: [] };
+  const { hourlyRate, entries } = state.finance;
+
+  // Stundenlohn display
+  const rateInput = document.getElementById('hourly-rate-input');
+  if (rateInput && hourlyRate > 0) rateInput.value = hourlyRate;
+  const rateDisplay = document.getElementById('hourly-rate-display');
+  if (rateDisplay) rateDisplay.textContent = hourlyRate > 0 ? 'Aktuell: ' + hourlyRate.toFixed(2) + ' €/h' : 'Noch kein Stundenlohn gesetzt';
+
+  // Earnings from work this week
+  const weekSecs = state.work.filter(s => isThisWeek(s.date)).reduce((sum, s) => sum + s.seconds, 0);
+  let liveSecs = weekSecs;
+  if (state.timer.running && state.timer.startedAt && isThisWeek(todayStr())) {
+    liveSecs += Math.floor((Date.now() - state.timer.startedAt) / 1000);
+  }
+  const earnings = liveSecs / 3600 * hourlyRate;
+  const earningsEl = document.getElementById('finance-earnings');
+  if (earningsEl) earningsEl.textContent = '€' + earnings.toFixed(2);
+
+  // Month income/expenses
+  const monthEntries = entries.filter(e => isThisMonth(e.date));
+  const monthIncome   = monthEntries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+  const monthExpenses = monthEntries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+  const balance = monthIncome - monthExpenses;
+
+  const incEl = document.getElementById('finance-income');
+  if (incEl) incEl.textContent = '€' + monthIncome.toFixed(2);
+  const expEl = document.getElementById('finance-expenses');
+  if (expEl) expEl.textContent = '€' + monthExpenses.toFixed(2);
+  const balEl = document.getElementById('finance-balance');
+  if (balEl) {
+    balEl.textContent = (balance >= 0 ? '+' : '') + '€' + balance.toFixed(2);
+    balEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+  }
+
+  // Finance date input default
+  const dateInput = document.getElementById('finance-date');
+  if (dateInput && !dateInput.value) dateInput.value = todayStr();
+
+  // List
+  const listEl = document.getElementById('finance-list');
+  if (!listEl) return;
+  if (entries.length === 0) {
+    listEl.innerHTML = '<div class="empty"><div class="empty-icon">💳</div>Noch keine Einträge</div>';
+    return;
+  }
+  const groups = {};
+  entries.forEach(e => {
+    if (!groups[e.date]) groups[e.date] = [];
+    groups[e.date].push(e);
+  });
+  const sorted = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+  listEl.innerHTML = sorted.map(date => {
+    const label = isToday(date) ? 'Heute' : formatDate(date);
+    const items = groups[date].map(e => `
+      <div class="log-item">
+        <div class="log-icon">${e.type === 'income' ? '💰' : '💸'}</div>
+        <div class="log-body">
+          <div class="log-title">${e.type === 'income' ? '+' : '-'}€${e.amount.toFixed(2)}${e.desc ? ' · ' + escHtml(e.desc) : ''}</div>
+          <div class="log-sub">${e.type === 'income' ? 'Einnahme' : 'Ausgabe'}</div>
+        </div>
+        <button class="log-delete" onclick="deleteFinanceEntry('${e.id}')">×</button>
+      </div>`).join('');
+    return `<div class="log-group-label">${label}</div>${items}`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
 //  Init
 // ─────────────────────────────────────────────
 function initHeader() {
@@ -1687,6 +1895,8 @@ function init() {
   load();
   initHeader();
   initSportDate();
+  const fd = document.getElementById('finance-date');
+  if (fd) fd.value = todayStr();
   renderDashboard();
 
   // Restore timer if was running
