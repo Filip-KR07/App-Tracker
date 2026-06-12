@@ -756,13 +756,90 @@
     align-items: center;
     justify-content: space-between;
   }
+
+  /* ── Auth screen ── */
+  #auth-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    padding-top: calc(24px + var(--safe-top));
+    padding-bottom: calc(24px + var(--safe-bottom));
+  }
+
+  .auth-box { width: 100%; max-width: 360px; }
+
+  .auth-logo {
+    font-size: 48px;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .auth-title {
+    font-size: 28px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.36px;
+  }
+
+  .auth-sub {
+    font-size: 15px;
+    color: var(--muted);
+    text-align: center;
+    margin: 8px 0 28px;
+  }
+
+  #auth-error {
+    color: var(--danger);
+    font-size: 14px;
+    min-height: 20px;
+    margin: 2px 0 10px;
+    text-align: center;
+  }
+
+  /* ── Sync status ── */
+  .sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted-2);
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .sync-dot.synced  { background: var(--success); }
+  .sync-dot.offline { background: #FF9F0A; }
+  .sync-dot.error   { background: var(--danger); }
+
+  .logout-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 6px 0 6px 8px;
+    -webkit-tap-highlight-color: transparent;
+    font-family: -apple-system, "Helvetica Neue", sans-serif;
+  }
 </style>
 </head>
 <body>
 <div id="app">
   <div id="header">
-    <div class="greeting">Hallo Meister 👑</div>
-    <div class="date" id="header-date"></div>
+    <div class="flex-between">
+      <div>
+        <div class="greeting">Hallo Meister 👑</div>
+        <div class="date" id="header-date"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding-top:8px">
+        <span class="sync-dot" id="sync-dot"></span>
+        <button class="logout-btn" onclick="logout()">Abmelden</button>
+      </div>
+    </div>
   </div>
 
   <div id="views">
@@ -1031,6 +1108,26 @@
   </nav>
 </div>
 
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">👑</div>
+    <div class="auth-title">Tracker</div>
+    <div class="auth-sub">Melde dich an, um deine Daten auf allen Geräten zu synchronisieren.</div>
+    <div class="form-group">
+      <label class="form-label">E-Mail</label>
+      <input class="form-input" id="auth-email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" placeholder="du@beispiel.de">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Passwort</label>
+      <input class="form-input" id="auth-pass" type="password" autocomplete="current-password" placeholder="Mind. 6 Zeichen" onkeydown="if(event.key==='Enter')authSubmit('signin')">
+    </div>
+    <div id="auth-error"></div>
+    <button class="btn btn-primary btn-full" onclick="authSubmit('signin')" style="margin-bottom:10px">Anmelden</button>
+    <button class="btn btn-ghost btn-full" onclick="authSubmit('signup')">Neues Konto erstellen</button>
+  </div>
+</div>
+
 <!-- Modal Overlay -->
 <div id="modal-overlay" onclick="handleOverlayClick(event)">
   <div id="modal-sheet">
@@ -1135,9 +1232,229 @@ function load() {
 }
 
 function save() {
+  state._updatedAt = Date.now();
   try {
     localStorage.setItem('tracker-state', JSON.stringify(state));
   } catch(e) {}
+  scheduleCloudPush();
+}
+
+// ─────────────────────────────────────────────
+//  Cloud (Supabase): Auth + Sync
+// ─────────────────────────────────────────────
+const SUPA_URL = 'https://inoaycfyuchfzymnnuei.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlub2F5Y2Z5dWNoZnp5bW5udWVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTIwNTYsImV4cCI6MjA5NjgyODA1Nn0.tROug8PBbdROSNFXCin_gFFHp7QBX9HHAdBCFB-ERSM';
+
+let session = null;
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem('tracker-session');
+    if (raw) session = JSON.parse(raw);
+  } catch(e) { session = null; }
+}
+
+function saveSession(s) {
+  session = s;
+  try {
+    if (s) localStorage.setItem('tracker-session', JSON.stringify(s));
+    else localStorage.removeItem('tracker-session');
+  } catch(e) {}
+}
+
+function authHeaders() {
+  return {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + (session ? session.access_token : SUPA_KEY),
+    'Content-Type': 'application/json'
+  };
+}
+
+let refreshPromise = null;
+
+function ensureSession() {
+  if (!session) return Promise.resolve(false);
+  if (session.expires_at && Date.now() / 1000 < session.expires_at - 60) {
+    return Promise.resolve(true);
+  }
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
+
+async function doRefresh() {
+  let res;
+  try {
+    res = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: session.refresh_token })
+    });
+  } catch(e) {
+    setSyncStatus('offline');
+    return false;
+  }
+  if (!res.ok) {
+    saveSession(null);
+    showAuthScreen();
+    return false;
+  }
+  const data = await res.json();
+  saveSession({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
+    user_id: data.user.id,
+    email: data.user.email
+  });
+  return true;
+}
+
+async function authSubmit(mode) {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass  = document.getElementById('auth-pass').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'E-Mail und Passwort eingeben.'; return; }
+  if (mode === 'signup' && pass.length < 6) { errEl.textContent = 'Passwort: mindestens 6 Zeichen.'; return; }
+
+  const btns = document.querySelectorAll('#auth-screen .btn');
+  btns.forEach(b => b.disabled = true);
+  try {
+    const endpoint = mode === 'signup' ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password';
+    const res = await fetch(SUPA_URL + endpoint, {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = authErrorText(data);
+      return;
+    }
+    if (!data.access_token) {
+      errEl.textContent = 'Konto erstellt — bitte E-Mail bestätigen, dann anmelden.';
+      return;
+    }
+    saveSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
+      user_id: data.user.id,
+      email: data.user.email
+    });
+    hideAuthScreen();
+    loadFromCloud();
+  } catch(e) {
+    errEl.textContent = 'Keine Verbindung — später erneut versuchen.';
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+function authErrorText(data) {
+  const msg = (data && (data.error_description || data.msg || data.message)) || '';
+  if (/invalid login credentials/i.test(msg)) return 'E-Mail oder Passwort falsch.';
+  if (/already registered/i.test(msg)) return 'Diese E-Mail ist bereits registriert — bitte anmelden.';
+  if (/rate limit/i.test(msg)) return 'Zu viele Versuche — bitte kurz warten.';
+  if (/invalid/i.test(msg) && /email/i.test(msg)) return 'Ungültige E-Mail-Adresse.';
+  if (/password/i.test(msg)) return 'Passwort: mindestens 6 Zeichen.';
+  return msg || 'Fehler — bitte erneut versuchen.';
+}
+
+function logout() {
+  if (!confirm('Wirklich abmelden?')) return;
+  if (session) {
+    fetch(SUPA_URL + '/auth/v1/logout', { method: 'POST', headers: authHeaders() }).catch(() => {});
+  }
+  saveSession(null);
+  setSyncStatus('');
+  showAuthScreen();
+}
+
+function showAuthScreen() {
+  const el = document.getElementById('auth-screen');
+  if (el) el.style.display = 'flex';
+}
+
+function hideAuthScreen() {
+  const el = document.getElementById('auth-screen');
+  if (el) el.style.display = 'none';
+}
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  if (dot) dot.className = 'sync-dot' + (status ? ' ' + status : '');
+}
+
+let syncTimer = null;
+let pushing = false;
+let pushQueued = false;
+
+function scheduleCloudPush() {
+  if (!session) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushToCloud, 1500);
+}
+
+async function pushToCloud() {
+  if (!session) return;
+  if (pushing) { pushQueued = true; return; }
+  pushing = true;
+  try {
+    if (!(await ensureSession())) return;
+    const res = await fetch(SUPA_URL + '/rest/v1/tracker_state', {
+      method: 'POST',
+      headers: Object.assign(authHeaders(), { 'Prefer': 'resolution=merge-duplicates' }),
+      body: JSON.stringify({
+        user_id: session.user_id,
+        data: state,
+        updated_at: new Date().toISOString()
+      })
+    });
+    setSyncStatus(res.ok ? 'synced' : 'error');
+  } catch(e) {
+    setSyncStatus('offline');
+  } finally {
+    pushing = false;
+    if (pushQueued) { pushQueued = false; scheduleCloudPush(); }
+  }
+}
+
+async function loadFromCloud() {
+  if (!session) return;
+  try {
+    if (!(await ensureSession())) return;
+    const res = await fetch(SUPA_URL + '/rest/v1/tracker_state?user_id=eq.' + session.user_id + '&select=data', {
+      headers: authHeaders()
+    });
+    if (!res.ok) { setSyncStatus('error'); return; }
+    const rows = await res.json();
+    if (rows.length && rows[0].data) {
+      const cloud = rows[0].data;
+      if ((cloud._updatedAt || 0) > (state._updatedAt || 0)) {
+        state = Object.assign({}, DEFAULT_STATE, cloud);
+        try { localStorage.setItem('tracker-state', JSON.stringify(state)); } catch(e) {}
+        applyLoadedState();
+      } else if ((state._updatedAt || 0) > (cloud._updatedAt || 0)) {
+        scheduleCloudPush();
+      }
+    } else if (state._updatedAt) {
+      scheduleCloudPush();
+    }
+    setSyncStatus('synced');
+  } catch(e) {
+    setSyncStatus('offline');
+  }
+}
+
+function applyLoadedState() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  renderView(currentView);
+  renderDashboard();
+  updateTimerUI();
+  restoreRunningTimer();
 }
 
 // ─────────────────────────────────────────────
@@ -1891,36 +2208,51 @@ function initSportDate() {
   if (el) el.value = todayStr();
 }
 
+function restoreRunningTimer() {
+  if (!(state.timer.running && state.timer.startedAt)) return;
+  // Re-sync chip selection
+  const proj = state.timer.project;
+  const matchChip = document.querySelector(`#work-project-chips .chip[data-val="${proj}"]`);
+  if (matchChip) {
+    document.querySelectorAll('#work-project-chips .chip').forEach(c => c.classList.remove('active'));
+    matchChip.classList.add('active');
+    selectedWorkProject = proj;
+  } else {
+    // custom
+    document.querySelectorAll('#work-project-chips .chip').forEach(c => c.classList.remove('active'));
+    document.querySelector('#work-project-chips .chip[data-val="__custom__"]').classList.add('active');
+    selectedWorkProject = '__custom__';
+    document.getElementById('work-custom-wrap').style.display = 'block';
+    document.getElementById('work-custom-input').value = proj;
+  }
+  startTimerInterval();
+}
+
 function init() {
   load();
+  loadSession();
   initHeader();
   initSportDate();
   const fd = document.getElementById('finance-date');
   if (fd) fd.value = todayStr();
   renderDashboard();
+  restoreRunningTimer();
 
-  // Restore timer if was running
-  if (state.timer.running && state.timer.startedAt) {
-    // Re-sync chip selection
-    const proj = state.timer.project;
-    const matchChip = document.querySelector(`#work-project-chips .chip[data-val="${proj}"]`);
-    if (matchChip) {
-      document.querySelectorAll('#work-project-chips .chip').forEach(c => c.classList.remove('active'));
-      matchChip.classList.add('active');
-      selectedWorkProject = proj;
-    } else {
-      // custom
-      document.querySelectorAll('#work-project-chips .chip').forEach(c => c.classList.remove('active'));
-      document.querySelector('#work-project-chips .chip[data-val="__custom__"]').classList.add('active');
-      selectedWorkProject = '__custom__';
-      document.getElementById('work-custom-wrap').style.display = 'block';
-      document.getElementById('work-custom-input').value = proj;
-    }
-    startTimerInterval();
+  if (session) {
+    hideAuthScreen();
+    loadFromCloud();
+  } else {
+    showAuthScreen();
   }
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Re-sync when app comes back online or to foreground
+window.addEventListener('online', () => { if (session) loadFromCloud(); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && session) loadFromCloud();
+});
 </script>
 </body>
 </html>
