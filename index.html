@@ -982,6 +982,63 @@
 
       <div id="finance-list"></div>
     </div>
+
+    <!-- Markt -->
+    <div class="view" id="view-markt">
+      <div class="section-header" style="margin-top:0">
+        <div class="section-title">Markt</div>
+      </div>
+
+      <!-- Krypto -->
+      <div class="card">
+        <div class="card-title">
+          <span>Krypto · <span id="crypto-status" style="text-transform:none;letter-spacing:0">—</span></span>
+          <button class="btn-icon" onclick="fetchCrypto()" title="Aktualisieren" style="width:30px;height:30px;font-size:16px">⟳</button>
+        </div>
+        <div id="crypto-list"></div>
+      </div>
+
+      <!-- Zinsrechner -->
+      <div class="card">
+        <div class="card-title">Zinsrechner</div>
+        <div class="stat-num" id="zins-result" style="margin-bottom:4px">€0</div>
+        <div class="stat-label">Endkapital nach Laufzeit</div>
+
+        <div class="stat-row" style="margin:14px 0 4px">
+          <div class="stat-box" style="padding:13px 14px">
+            <div class="num" id="zins-deposited" style="font-size:22px">€0</div>
+            <div class="lbl">Eingezahlt</div>
+          </div>
+          <div class="stat-box" style="padding:13px 14px">
+            <div class="num" id="zins-interest" style="font-size:22px;color:var(--success)">€0</div>
+            <div class="lbl">Zinsertrag</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Startkapital (€)</label>
+            <input class="form-input" id="zins-start" type="number" inputmode="decimal" min="0" step="100" value="1000" oninput="calcInterest()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monatlich (€)</label>
+            <input class="form-input" id="zins-monthly" type="number" inputmode="decimal" min="0" step="10" value="100" oninput="calcInterest()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Zinssatz % p.a.</label>
+            <input class="form-input" id="zins-rate" type="number" inputmode="decimal" min="0" step="0.1" value="7" oninput="calcInterest()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Laufzeit (Jahre)</label>
+            <input class="form-input" id="zins-years" type="number" inputmode="decimal" min="0" step="1" value="10" oninput="calcInterest()">
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Bottom Nav -->
@@ -1011,6 +1068,11 @@
     <button class="nav-btn" data-view="finance" onclick="switchView('finance')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+    </button>
+    <button class="nav-btn" data-view="markt" onclick="switchView('markt')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
       </svg>
     </button>
   </nav>
@@ -1387,6 +1449,7 @@ function renderView(view) {
   else if (view === 'sport') renderSport();
   else if (view === 'work') renderWork();
   else if (view === 'finance') renderFinance();
+  else if (view === 'markt') renderMarkt();
 }
 
 // ─────────────────────────────────────────────
@@ -2148,6 +2211,151 @@ function renderActivityDots() {
 }
 
 // ─────────────────────────────────────────────
+//  Markt: Krypto + Zinsrechner
+// ─────────────────────────────────────────────
+const CRYPTO_COINS = [
+  { id: 'bitcoin',  symbol: 'BTC', name: 'Bitcoin',  icon: '₿' },
+  { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', icon: 'Ξ' },
+  { id: 'solana',   symbol: 'SOL', name: 'Solana',   icon: '◎' }
+];
+
+let cryptoData = null;
+let cryptoLoading = false;
+
+function loadCryptoCache() {
+  try {
+    const raw = localStorage.getItem('tracker-crypto-cache');
+    if (raw) cryptoData = JSON.parse(raw);
+  } catch(e) {}
+}
+
+function renderMarkt() {
+  renderCrypto();
+  calcInterest();
+  if (!cryptoData || (Date.now() - (cryptoData.ts || 0)) > 60000) {
+    fetchCrypto();
+  }
+}
+
+function fmtEur(n, dec) {
+  return '€' + Number(n).toLocaleString('de-DE', {
+    minimumFractionDigits: dec, maximumFractionDigits: dec
+  });
+}
+
+async function fetchCrypto() {
+  if (cryptoLoading) return;
+  cryptoLoading = true;
+  const statusEl = document.getElementById('crypto-status');
+  if (statusEl) statusEl.textContent = 'lädt…';
+
+  const ids = CRYPTO_COINS.map(c => c.id).join(',');
+  const prices = {};
+  let ok = false;
+
+  // Primär: CoinGecko (liefert 24h-Veränderung)
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=eur&include_24hr_change=true');
+    if (res.ok) {
+      const d = await res.json();
+      CRYPTO_COINS.forEach(c => {
+        if (d[c.id] && typeof d[c.id].eur === 'number') {
+          prices[c.id] = { price: d[c.id].eur, change: d[c.id].eur_24h_change };
+        }
+      });
+      ok = Object.keys(prices).length > 0;
+    }
+  } catch(e) {}
+
+  // Fallback: Coinbase (nur Preis, keine Veränderung)
+  if (!ok) {
+    try {
+      await Promise.all(CRYPTO_COINS.map(async c => {
+        const r = await fetch('https://api.coinbase.com/v2/prices/' + c.symbol + '-EUR/spot');
+        if (r.ok) {
+          const j = await r.json();
+          const amt = parseFloat(j.data.amount);
+          if (!isNaN(amt)) prices[c.id] = { price: amt, change: null };
+        }
+      }));
+      ok = Object.keys(prices).length > 0;
+    } catch(e) {}
+  }
+
+  cryptoLoading = false;
+
+  if (ok) {
+    cryptoData = { prices, ts: Date.now() };
+    try { localStorage.setItem('tracker-crypto-cache', JSON.stringify(cryptoData)); } catch(e) {}
+    renderCrypto();
+  } else {
+    if (statusEl) statusEl.textContent = 'offline';
+    const listEl = document.getElementById('crypto-list');
+    if (listEl && !cryptoData) {
+      listEl.innerHTML = '<div class="empty" style="padding:24px 0"><div class="empty-icon">📡</div>Kurse konnten nicht geladen werden.</div>';
+    }
+  }
+}
+
+function renderCrypto() {
+  const listEl = document.getElementById('crypto-list');
+  const statusEl = document.getElementById('crypto-status');
+  if (!listEl) return;
+  if (!cryptoData) {
+    listEl.innerHTML = '<div class="empty" style="padding:24px 0">Lädt Kurse…</div>';
+    return;
+  }
+  listEl.innerHTML = CRYPTO_COINS.map(c => {
+    const p = cryptoData.prices[c.id];
+    if (!p) return '';
+    const dec = p.price < 1000 ? 2 : 0;
+    let changeHtml = '<div class="log-sub">—</div>';
+    if (p.change !== null && p.change !== undefined && !isNaN(p.change)) {
+      const up = p.change >= 0;
+      changeHtml = `<div style="font-size:13px;font-weight:600;color:${up ? 'var(--success)' : 'var(--danger)'}">${up ? '+' : ''}${p.change.toFixed(2)} %</div>`;
+    }
+    return `<div class="log-item">
+      <div class="log-icon">${c.icon}</div>
+      <div class="log-body">
+        <div class="log-title">${c.name}</div>
+        <div class="log-sub">${c.symbol}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700;font-variant-numeric:tabular-nums;font-size:16px">${fmtEur(p.price, dec)}</div>
+        ${changeHtml}
+      </div>
+    </div>`;
+  }).join('');
+  if (statusEl) {
+    const t = new Date(cryptoData.ts);
+    statusEl.textContent = 'Stand ' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+  }
+}
+
+function calcInterest() {
+  const P     = parseFloat((document.getElementById('zins-start')   || {}).value) || 0;
+  const PMT   = parseFloat((document.getElementById('zins-monthly') || {}).value) || 0;
+  const rate  = parseFloat((document.getElementById('zins-rate')    || {}).value) || 0;
+  const years = parseFloat((document.getElementById('zins-years')   || {}).value) || 0;
+  const n = Math.round(years * 12);
+  const r = rate / 100 / 12;
+
+  let fv;
+  if (r === 0) {
+    fv = P + PMT * n;
+  } else {
+    fv = P * Math.pow(1 + r, n) + PMT * ((Math.pow(1 + r, n) - 1) / r);
+  }
+  const deposited = P + PMT * n;
+  const interest = fv - deposited;
+
+  const setF = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = fmtEur(val, 0); };
+  setF('zins-result', fv);
+  setF('zins-deposited', deposited);
+  setF('zins-interest', interest);
+}
+
+// ─────────────────────────────────────────────
 //  Init
 // ─────────────────────────────────────────────
 function initHeader() {
@@ -2187,6 +2395,7 @@ function restoreRunningTimer() {
 function init() {
   load();
   loadSession();
+  loadCryptoCache();
   initHeader();
   initSportDate();
   const fd = document.getElementById('finance-date');
