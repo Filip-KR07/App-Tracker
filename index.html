@@ -884,6 +884,603 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* ── Onboarding ── */
+  #onboarding-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 400;
+    display: flex;
+    flex-direction: column;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  #ob-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px 0;
+    flex-shrink: 0;
+    min-height: 54px;
+  }
+
+  #ob-back {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px 4px 0;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  #ob-back.visible { opacity: 1; }
+
+  #ob-progress-track {
+    flex: 1;
+    height: 3px;
+    background: var(--fill);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  #ob-progress-fill {
+    height: 100%;
+    background: var(--text);
+    border-radius: 2px;
+    transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  #ob-phase-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex-shrink: 0;
+    min-width: 40px;
+    text-align: right;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  #ob-phase-tag.visible { opacity: 1; }
+
+  #ob-body {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .ob-step {
+    position: absolute;
+    inset: 0;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(40px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ob-step.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+
+  .ob-step.exit {
+    opacity: 0;
+    transform: translateX(-40px);
+    pointer-events: none;
+  }
+
+  .ob-step-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding-top: 28px;
+    padding-bottom: 16px;
+  }
+
+  .ob-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .ob-title {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .ob-sub {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.55;
+    margin-bottom: 32px;
+  }
+
+  /* Welcome step */
+  .ob-welcome-icon {
+    font-size: 72px;
+    text-align: center;
+  }
+
+  .ob-welcome-title {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    text-align: center;
+    line-height: 1.05;
+  }
+
+  .ob-welcome-sub {
+    font-size: 16px;
+    color: var(--muted);
+    text-align: center;
+    margin: 12px 0 auto;
+    line-height: 1.55;
+  }
+
+  /* Multi-select chips */
+  .ob-option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ob-option {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+  }
+
+  .ob-option.selected {
+    border-color: var(--text);
+    background: var(--surface-2);
+  }
+
+  .ob-option-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    width: 36px;
+    text-align: center;
+  }
+
+  .ob-option-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .ob-option-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .ob-option-check {
+    margin-left: auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--muted-2);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .ob-option.selected .ob-option-check {
+    background: var(--text);
+    border-color: var(--text);
+  }
+
+  .ob-option.selected .ob-option-check::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: 2px solid var(--bg);
+    border-left: none;
+    border-top: none;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+
+  /* Radio option (single select) */
+  .ob-radio-check {
+    margin-left: auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--muted-2);
+    flex-shrink: 0;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+
+  .ob-option.radio.selected .ob-radio-check {
+    border-color: var(--text);
+    background: var(--text);
+  }
+
+  .ob-option.radio.selected .ob-radio-check::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    background: var(--bg);
+  }
+
+  /* Gender selection */
+  .ob-gender-row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .ob-gender-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 28px 16px;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+    min-height: 140px;
+  }
+
+  .ob-gender-card.selected {
+    border-color: var(--text);
+    background: var(--surface-2);
+  }
+
+  .ob-gender-icon {
+    font-size: 40px;
+  }
+
+  .ob-gender-label {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* Drum picker */
+  .ob-drum-wrap {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+
+  .ob-drum {
+    height: 220px;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .ob-drum::-webkit-scrollbar { display: none; }
+
+  .ob-drum-spacer {
+    height: 88px;
+    flex-shrink: 0;
+  }
+
+  .ob-drum-item {
+    height: 44px;
+    scroll-snap-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--muted-2);
+    letter-spacing: -0.5px;
+    transition: color 0.1s, font-size 0.1s;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .ob-drum-fade-top,
+  .ob-drum-fade-bot {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 88px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .ob-drum-fade-top {
+    top: 0;
+    background: linear-gradient(to bottom, var(--bg) 20%, transparent);
+  }
+
+  .ob-drum-fade-bot {
+    bottom: 0;
+    background: linear-gradient(to top, var(--bg) 20%, transparent);
+  }
+
+  .ob-drum-selector {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 44px;
+    transform: translateY(-50%);
+    border-top: 0.5px solid var(--border);
+    border-bottom: 0.5px solid var(--border);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .ob-drum-value-display {
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    text-align: center;
+    color: var(--text);
+    margin-top: 8px;
+  }
+
+  .ob-drum-unit {
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 4px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Motivation slide */
+  .ob-chart-wrap {
+    position: relative;
+    height: 180px;
+    margin: 8px 0 24px;
+  }
+
+  .ob-chart-wrap svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .ob-stat-big {
+    font-size: 72px;
+    font-weight: 800;
+    letter-spacing: -3px;
+    line-height: 1;
+    text-align: center;
+    color: var(--text);
+    margin: auto 0;
+  }
+
+  .ob-stat-sub {
+    font-size: 18px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.4;
+    margin-top: 12px;
+    margin-bottom: auto;
+  }
+
+  /* Body fat slider */
+  .ob-fat-slider-wrap { margin: 16px 0 8px; }
+
+  .ob-fat-pct {
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    text-align: center;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .ob-fat-unit { font-size: 14px; color: var(--muted); text-align: center; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  input[type=range].ob-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--fill);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range].ob-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  input[type=range].ob-slider::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  .ob-fat-label {
+    font-size: 15px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 10px;
+    font-weight: 500;
+    min-height: 22px;
+  }
+
+  /* Loading step */
+  .ob-loader-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 24px;
+  }
+
+  .ob-loader-orb {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.06);
+    border-top-color: var(--text);
+    animation: ob-spin 1s linear infinite;
+  }
+
+  @keyframes ob-spin { to { transform: rotate(360deg); } }
+
+  .ob-loader-text {
+    font-size: 16px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .ob-loader-next-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-2);
+    margin-top: 4px;
+  }
+
+  .ob-loader-next-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* Footer */
+  #ob-footer {
+    padding: 12px 24px;
+    flex-shrink: 0;
+    padding-bottom: max(12px, var(--safe-bottom));
+  }
+
+  #ob-next {
+    width: 100%;
+    padding: 17px;
+    border-radius: var(--radius);
+    border: none;
+    background: var(--text);
+    color: var(--on-accent);
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: -0.2px;
+  }
+
+  #ob-next:active { opacity: 0.85; transform: scale(0.98); }
+
+  #ob-skip {
+    display: block;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 10px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    background: none;
+    border: none;
+    width: 100%;
+    font-family: inherit;
+  }
+
+  /* Outro */
+  .ob-outro-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    padding-top: 24px;
+  }
+
+  .ob-outro-icon { font-size: 64px; margin-bottom: 20px; }
+
+  .ob-outro-title {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    text-align: center;
+    line-height: 1.15;
+    margin-bottom: 10px;
+  }
+
+  .ob-outro-sub {
+    font-size: 15px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+    max-width: 300px;
+    margin-bottom: 32px;
+  }
+
+  .ob-outro-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: auto;
+  }
+
+  .ob-outro-chip {
+    padding: 7px 14px;
+    border-radius: 100px;
+    background: var(--surface-2);
+    border: 0.5px solid var(--border);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
 </style>
 </head>
 <body>
@@ -1314,6 +1911,272 @@
   </div>
 </div>
 
+<!-- Onboarding Screen -->
+<div id="onboarding-screen" style="display:none">
+  <div id="ob-topbar">
+    <button id="ob-back" onclick="obBack()">&#8592;</button>
+    <div id="ob-progress-track"><div id="ob-progress-fill"></div></div>
+    <div id="ob-phase-tag"></div>
+  </div>
+
+  <div id="ob-body">
+
+    <!-- Step 0: Welcome -->
+    <div class="ob-step" data-step="0">
+      <div class="ob-step-inner" style="align-items:center;justify-content:center;gap:14px;padding-top:48px">
+        <div class="ob-welcome-icon">&#128081;</div>
+        <div class="ob-welcome-title">Willkommen bei<br>Tracker</div>
+        <div class="ob-welcome-sub">Dein pers&#246;nlicher Assistent f&#252;r Ziele, Sport, Arbeit &amp; Finanzen. Lass uns deinen Plan einrichten.</div>
+      </div>
+    </div>
+
+    <!-- Step 1: Was willst du tracken? (multi-select) -->
+    <div class="ob-step" data-step="1">
+      <div class="ob-step-inner">
+        <div class="ob-eyebrow">Deine Ziele</div>
+        <div class="ob-title">Was willst du<br>verfolgen?</div>
+        <div class="ob-sub">W&#228;hle alles, was auf dich zutrifft.</div>
+        <div class="ob-option-list" id="ob-focus-list">
+          <div class="ob-option" data-val="goals" onclick="obToggleFocus(this)">
+            <div class="ob-option-icon">&#127919;</div>
+            <div><div class="ob-option-label">Ziele &amp; Meilensteine</div><div class="ob-option-sub">Setze dir Ziele und verfolge deinen Fortschritt</div></div>
+            <div class="ob-option-check"></div>
+          </div>
+          <div class="ob-option" data-val="sport" onclick="obToggleFocus(this)">
+            <div class="ob-option-icon">&#128170;</div>
+            <div><div class="ob-option-label">Sport &amp; Fitness</div><div class="ob-option-sub">Trainingseinheiten und Aktivit&#228;t tracken</div></div>
+            <div class="ob-option-check"></div>
+          </div>
+          <div class="ob-option" data-val="work" onclick="obToggleFocus(this)">
+            <div class="ob-option-icon">&#9201;</div>
+            <div><div class="ob-option-label">Arbeitszeit &amp; Produktivit&#228;t</div><div class="ob-option-sub">Zeiterfassung und Projekte</div></div>
+            <div class="ob-option-check"></div>
+          </div>
+          <div class="ob-option" data-val="finance" onclick="obToggleFocus(this)">
+            <div class="ob-option-icon">&#128200;</div>
+            <div><div class="ob-option-label">Finanzen &amp; Budget</div><div class="ob-option-sub">Einnahmen, Ausgaben und Sparziele</div></div>
+            <div class="ob-option-check"></div>
+          </div>
+          <div class="ob-option" data-val="crypto" onclick="obToggleFocus(this)">
+            <div class="ob-option-icon">&#8383;</div>
+            <div><div class="ob-option-label">Investments &amp; Krypto</div><div class="ob-option-sub">Kurse, Zinsen und Verm&#246;gen</div></div>
+            <div class="ob-option-check"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Motivation -->
+    <div class="ob-step" data-step="2">
+      <div class="ob-step-inner" style="align-items:center;justify-content:center">
+        <div class="ob-stat-big">3&#215;</div>
+        <div class="ob-stat-sub">mehr Ziele erreichen Nutzer,<br>die konsequent tracken.</div>
+        <div class="ob-chart-wrap" style="width:100%">
+          <svg viewBox="0 0 300 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 140 C60 130, 100 100, 150 60 C200 20, 240 15, 290 10" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.9"/>
+            <path d="M10 140 C80 138, 150 135, 290 130" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-dasharray="6,4" fill="none"/>
+            <text x="200" y="28" fill="white" font-size="11" font-weight="700" font-family="-apple-system,sans-serif" opacity="0.9">MIT TRACKER</text>
+            <text x="200" y="122" fill="rgba(255,255,255,0.35)" font-size="11" font-weight="600" font-family="-apple-system,sans-serif">OHNE TRACKER</text>
+            <text x="272" y="157" fill="rgba(255,255,255,0.3)" font-size="10" font-family="-apple-system,sans-serif">90 Tage</text>
+          </svg>
+        </div>
+        <div style="font-size:13px;color:var(--muted);text-align:center;line-height:1.5">Basierend auf einer internen Analyse von Nutzern, die ihre Gewohnheiten aktiv verfolgen.</div>
+      </div>
+    </div>
+
+    <!-- Step 3: Gender -->
+    <div class="ob-step" data-step="3">
+      <div class="ob-step-inner">
+        <div class="ob-eyebrow">Dein Profil</div>
+        <div class="ob-title">W&#228;hle Dein<br>Geschlecht</div>
+        <div class="ob-sub">F&#252;r eine genauere Personalisierung.</div>
+        <div class="ob-gender-row" id="ob-gender-row">
+          <div class="ob-gender-card" data-val="male" onclick="obSelectGender(this)">
+            <div class="ob-gender-icon">&#128104;</div>
+            <div class="ob-gender-label">M&#228;nnlich</div>
+          </div>
+          <div class="ob-gender-card" data-val="female" onclick="obSelectGender(this)">
+            <div class="ob-gender-icon">&#128105;</div>
+            <div class="ob-gender-label">Weiblich</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Age (year drum) -->
+    <div class="ob-step" data-step="4">
+      <div class="ob-step-inner">
+        <div class="ob-eyebrow">Dein Profil</div>
+        <div class="ob-title">Wie alt bist Du?</div>
+        <div class="ob-sub">Dein Geburtsjahr hilft uns, deine Ziele besser einzusch&#228;tzen.</div>
+        <div id="ob-age-display" class="ob-drum-value-display">2000</div>
+        <div class="ob-drum-unit">Geburtsjahr</div>
+        <div class="ob-drum-wrap">
+          <div class="ob-drum-fade-top"></div>
+          <div class="ob-drum-selector"></div>
+          <div class="ob-drum-fade-bot"></div>
+          <div class="ob-drum" id="ob-year-drum"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Height -->
+    <div class="ob-step" data-step="5">
+      <div class="ob-step-inner">
+        <div class="ob-eyebrow">Dein Profil</div>
+        <div class="ob-title">Wie gro&#223; bist Du?</div>
+        <div class="ob-sub"></div>
+        <div id="ob-height-display" class="ob-drum-value-display">175</div>
+        <div class="ob-drum-unit">Zentimeter</div>
+        <div class="ob-drum-wrap">
+          <div class="ob-drum-fade-top"></div>
+          <div class="ob-drum-selector"></div>
+          <div class="ob-drum-fade-bot"></div>
+          <div class="ob-drum" id="ob-height-drum"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6: Weight -->
+    <div class="ob-step" data-step="6">
+      <div class="ob-step-inner">
+        <div class="ob-eyebrow">Dein Profil</div>
+        <div class="ob-title">Wie viel wiegst Du?</div>
+        <div class="ob-sub"></div>
+        <div id="ob-weight-display" class="ob-drum-value-display">75</div>
+        <div class="ob-drum-unit">Kilogramm</div>
+        <div class="ob-drum-wrap">
+          <div class="ob-drum-fade-top"></div>
+          <div class="ob-drum-selector"></div>
+          <div class="ob-drum-fade-bot"></div>
+          <div class="ob-drum" id="ob-weight-drum"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 7: Body fat -->
+    <div class="ob-step" data-step="7">
+      <div class="ob-step-inner">
+        <div class="ob-eyebrow">Dein Profil</div>
+        <div class="ob-title">K&#246;rperfettanteil</div>
+        <div class="ob-sub">Sch&#228;tze deinen aktuellen K&#246;rperfettanteil.</div>
+        <div class="ob-fat-pct" id="ob-fat-pct">20%</div>
+        <div class="ob-fat-unit">K&#246;rperfett</div>
+        <div class="ob-fat-slider-wrap">
+          <input type="range" class="ob-slider" id="ob-fat-slider" min="5" max="50" value="20" oninput="obUpdateFat(this.value)">
+        </div>
+        <div class="ob-fat-label" id="ob-fat-label">Durchschnittlicher Bereich</div>
+      </div>
+    </div>
+
+    <!-- Step 8: Loading -->
+    <div class="ob-step" data-step="8">
+      <div class="ob-step-inner" style="justify-content:center">
+        <div class="ob-loader-wrap">
+          <div class="ob-loader-orb"></div>
+          <div>
+            <div class="ob-loader-text">Dein pers&#246;nlicher Plan<br>wird erstellt&#8230;</div>
+          </div>
+          <div style="text-align:center">
+            <div class="ob-loader-next-label">Als n&#228;chstes</div>
+            <div class="ob-loader-next-title">DEINE PRIORIT&#196;TEN</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 9: Activity level -->
+    <div class="ob-step" data-step="9">
+      <div class="ob-step-inner">
+        <div class="ob-eyebrow">Deine Priorit&#228;ten</div>
+        <div class="ob-title">Wie aktiv bist Du<br>im Alltag?</div>
+        <div class="ob-sub"></div>
+        <div class="ob-option-list" id="ob-activity-list">
+          <div class="ob-option radio" data-val="sedentary" onclick="obSelectActivity(this)">
+            <div class="ob-option-icon">&#128188;</div>
+            <div><div class="ob-option-label">Inaktiv</div><div class="ob-option-sub">Schreibtischjob, kaum Bewegung</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+          <div class="ob-option radio" data-val="light" onclick="obSelectActivity(this)">
+            <div class="ob-option-icon">&#128694;</div>
+            <div><div class="ob-option-label">Leicht aktiv</div><div class="ob-option-sub">Normale Alltagsaktivit&#228;t</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+          <div class="ob-option radio" data-val="moderate" onclick="obSelectActivity(this)">
+            <div class="ob-option-icon">&#128693;</div>
+            <div><div class="ob-option-label">Moderat aktiv</div><div class="ob-option-sub">Sport 2&#8211;3&#215; pro Woche</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+          <div class="ob-option radio" data-val="active" onclick="obSelectActivity(this)">
+            <div class="ob-option-icon">&#127939;</div>
+            <div><div class="ob-option-label">Aktiv</div><div class="ob-option-sub">H&#228;ufige Aktivit&#228;t, Sport 3+ Tage</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+          <div class="ob-option radio" data-val="very_active" onclick="obSelectActivity(this)">
+            <div class="ob-option-icon">&#128170;</div>
+            <div><div class="ob-option-label">Sehr aktiv</div><div class="ob-option-sub">T&#228;glich Sport oder k&#246;rperliche Arbeit</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 10: Main goal -->
+    <div class="ob-step" data-step="10">
+      <div class="ob-step-inner">
+        <div class="ob-eyebrow">Deine Priorit&#228;ten</div>
+        <div class="ob-title">Was ist Dein<br>Hauptziel?</div>
+        <div class="ob-sub"></div>
+        <div class="ob-option-list" id="ob-goal-list">
+          <div class="ob-option radio" data-val="lose_weight" onclick="obSelectGoal(this)">
+            <div class="ob-option-icon">&#128207;</div>
+            <div><div class="ob-option-label">Gewicht reduzieren</div><div class="ob-option-sub">Abnehmen und schlanker werden</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+          <div class="ob-option radio" data-val="build_muscle" onclick="obSelectGoal(this)">
+            <div class="ob-option-icon">&#128170;</div>
+            <div><div class="ob-option-label">Muskelaufbau</div><div class="ob-option-sub">St&#228;rker und muskulöser werden</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+          <div class="ob-option radio" data-val="more_productive" onclick="obSelectGoal(this)">
+            <div class="ob-option-icon">&#9889;</div>
+            <div><div class="ob-option-label">Produktiver werden</div><div class="ob-option-sub">Mehr schaffen in weniger Zeit</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+          <div class="ob-option radio" data-val="save_money" onclick="obSelectGoal(this)">
+            <div class="ob-option-icon">&#128176;</div>
+            <div><div class="ob-option-label">Geld sparen</div><div class="ob-option-sub">Budget kontrollieren, Verm&#246;gen aufbauen</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+          <div class="ob-option radio" data-val="all" onclick="obSelectGoal(this)">
+            <div class="ob-option-icon">&#127775;</div>
+            <div><div class="ob-option-label">Alles optimieren</div><div class="ob-option-sub">Ein umfassendes Leben-Upgrade</div></div>
+            <div class="ob-radio-check"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 11: Outro -->
+    <div class="ob-step" data-step="11">
+      <div class="ob-step-inner">
+        <div class="ob-outro-wrap">
+          <div class="ob-outro-icon">&#127881;</div>
+          <div class="ob-outro-title">Dein Plan<br>ist bereit!</div>
+          <div class="ob-outro-sub">Wir haben deinen pers&#246;nlichen Tracker eingerichtet. Jetzt noch schnell anmelden und los geht&#8217;s.</div>
+          <div class="ob-outro-chips" id="ob-outro-chips"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- #ob-body -->
+
+  <div id="ob-footer">
+    <button id="ob-next" onclick="obNext()">Los geht&#8217;s</button>
+    <button id="ob-skip" onclick="obSkip()">&#220;berspringen</button>
+  </div>
+</div>
+
 <!-- Auth Screen -->
 <div id="auth-screen">
   <div class="auth-box">
@@ -1433,6 +2296,16 @@ const DEFAULT_STATE = {
     weeklyDay: 0,
     _lastDaily: null,
     _lastWeekly: null
+  },
+  profile: {
+    focusAreas: [],
+    gender: '',
+    birthYear: 0,
+    heightCm: 175,
+    weightKg: 75,
+    bodyFat: 20,
+    activityLevel: '',
+    mainGoal: ''
   }
 };
 
@@ -2783,7 +3656,9 @@ function init() {
   restoreRunningTimer();
   registerSW();
 
-  if (session) {
+  if (!localStorage.getItem('tracker-onboarding-done')) {
+    showOnboarding();
+  } else if (session) {
     hideAuthScreen();
     loadFromCloud();
     checkNotifications();
@@ -2793,6 +3668,352 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ─────────────────────────────────────────────
+//  Onboarding
+// ─────────────────────────────────────────────
+const OB_TOTAL_STEPS = 12; // 0-11
+const OB_PROGRESS_STEPS = [1,2,3,4,5,6,7,9,10]; // steps that count toward progress
+let obStep = 0;
+let obLoadTimer = null;
+
+const OB_FAT_LABELS = {
+  5: 'Essential Fat – sehr niedrig',
+  10: 'Athletisch – sehr definiert',
+  15: 'Sehr fit – gut sichtbare Muskeln',
+  20: 'Durchschnittlicher Bereich',
+  25: 'Leicht &#252;ber Durchschnitt',
+  30: 'H&#246;herer K&#246;rperfettanteil',
+  40: 'Deutlich erh&#246;hter Anteil',
+  50: 'Hoher K&#246;rperfettanteil'
+};
+
+function obGetFatLabel(v) {
+  const keys = Object.keys(OB_FAT_LABELS).map(Number).sort((a,b)=>a-b);
+  for (let i = keys.length - 1; i >= 0; i--) {
+    if (v >= keys[i]) return OB_FAT_LABELS[keys[i]];
+  }
+  return '';
+}
+
+function showOnboarding() {
+  const el = document.getElementById('onboarding-screen');
+  if (el) el.style.display = 'flex';
+  obStep = 0;
+  obInitDrums();
+  obRender(0, 'none');
+}
+
+function hideOnboarding() {
+  const el = document.getElementById('onboarding-screen');
+  if (el) el.style.display = 'none';
+}
+
+function obInitDrums() {
+  obBuildDrum('ob-year-drum', 1940, 2012, 2000, 'ob-age-display');
+  obBuildDrum('ob-height-drum', 140, 220, 175, 'ob-height-display');
+  obBuildDrum('ob-weight-drum', 30, 200, 75, 'ob-weight-display');
+}
+
+function obBuildDrum(id, min, max, def, displayId) {
+  const drum = document.getElementById(id);
+  if (!drum) return;
+  drum.innerHTML = '';
+  const topSpacer = document.createElement('div');
+  topSpacer.className = 'ob-drum-spacer';
+  drum.appendChild(topSpacer);
+  for (let v = min; v <= max; v++) {
+    const item = document.createElement('div');
+    item.className = 'ob-drum-item';
+    item.textContent = v;
+    drum.appendChild(item);
+  }
+  const botSpacer = document.createElement('div');
+  botSpacer.className = 'ob-drum-spacer';
+  drum.appendChild(botSpacer);
+
+  const itemH = 44;
+  drum.scrollTop = (def - min) * itemH;
+
+  const display = document.getElementById(displayId);
+  drum.addEventListener('scroll', () => {
+    const idx = Math.round(drum.scrollTop / itemH);
+    const val = min + Math.max(0, Math.min(max - min, idx));
+    if (display) display.textContent = val;
+  }, { passive: true });
+}
+
+function obDrumValue(id, min) {
+  const drum = document.getElementById(id);
+  if (!drum) return min;
+  const idx = Math.round(drum.scrollTop / 44);
+  return min + Math.max(0, idx);
+}
+
+function obRender(newStep, dir) {
+  const steps = document.querySelectorAll('.ob-step');
+  steps.forEach(s => {
+    const sn = parseInt(s.dataset.step);
+    if (sn === obStep && dir !== 'none') {
+      s.classList.remove('active');
+      s.classList.add('exit');
+      setTimeout(() => s.classList.remove('exit'), 300);
+    } else if (sn !== newStep) {
+      s.classList.remove('active', 'exit');
+    }
+  });
+
+  obStep = newStep;
+  const active = document.querySelector(`.ob-step[data-step="${obStep}"]`);
+  if (active) {
+    active.classList.remove('exit');
+    requestAnimationFrame(() => active.classList.add('active'));
+  }
+
+  obUpdateTopbar();
+  obUpdateFooter();
+
+  if (obStep === 8) {
+    clearTimeout(obLoadTimer);
+    obLoadTimer = setTimeout(() => {
+      if (obStep === 8) obGoTo(9);
+    }, 2200);
+  }
+}
+
+function obUpdateTopbar() {
+  const back = document.getElementById('ob-back');
+  const fill = document.getElementById('ob-progress-fill');
+  const track = document.getElementById('ob-progress-track');
+  const tag = document.getElementById('ob-phase-tag');
+
+  const noProgress = [0, 2, 8, 11];
+  const showBack = obStep > 0 && !noProgress.includes(obStep);
+
+  if (back) back.className = 'ob-back' + (showBack ? ' visible' : '');
+
+  if (noProgress.includes(obStep)) {
+    if (track) track.style.opacity = '0';
+    if (tag) tag.className = 'ob-phase-tag';
+  } else {
+    if (track) track.style.opacity = '1';
+    const progressSteps = [1,3,4,5,6,7,9,10];
+    const idx = progressSteps.indexOf(obStep);
+    const pct = idx < 0 ? 0 : Math.round(((idx + 1) / progressSteps.length) * 100);
+    if (fill) fill.style.width = pct + '%';
+
+    const phase = obStep <= 7 ? 'Ziele' : 'Prioritäten';
+    if (tag) { tag.textContent = phase; tag.className = 'ob-phase-tag visible'; }
+  }
+}
+
+function obUpdateFooter() {
+  const nextBtn = document.getElementById('ob-next');
+  const skipBtn = document.getElementById('ob-skip');
+
+  if (obStep === 8) {
+    if (nextBtn) nextBtn.style.display = 'none';
+    if (skipBtn) skipBtn.style.display = 'none';
+    return;
+  }
+
+  if (nextBtn) nextBtn.style.display = 'block';
+
+  const noSkip = [0, 2, 8, 11];
+  if (skipBtn) skipBtn.style.display = noSkip.includes(obStep) ? 'none' : 'block';
+
+  const labels = {
+    0: 'Los geht\'s',
+    1: 'Weiter',
+    2: 'Weiter',
+    3: 'Weiter',
+    4: 'Weiter',
+    5: 'Weiter',
+    6: 'Weiter',
+    7: 'Weiter',
+    9: 'Weiter',
+    10: 'Weiter',
+    11: 'Konto erstellen'
+  };
+  if (nextBtn) nextBtn.textContent = labels[obStep] || 'Weiter';
+}
+
+function obNext() {
+  if (obStep === 11) {
+    obFinish();
+    return;
+  }
+  const next = obStep === 10 ? 11 : obStep + 1;
+  if (next === 11) obBuildOutro();
+  obGoTo(next);
+}
+
+function obBack() {
+  if (obStep <= 0) return;
+  const prev = obStep === 9 ? 7 : obStep - 1;
+  obGoTo(prev, 'back');
+}
+
+function obGoTo(n, dir) {
+  const steps = document.querySelectorAll('.ob-step');
+  const cur = document.querySelector(`.ob-step[data-step="${obStep}"]`);
+  if (cur) {
+    cur.classList.remove('active');
+    if (dir === 'back') {
+      cur.style.transform = 'translateX(40px)';
+      cur.style.opacity = '0';
+      setTimeout(() => { cur.style.transform = ''; cur.style.opacity = ''; }, 300);
+    } else {
+      cur.style.transform = 'translateX(-40px)';
+      cur.style.opacity = '0';
+      setTimeout(() => { cur.style.transform = ''; cur.style.opacity = ''; }, 300);
+    }
+  }
+  setTimeout(() => {
+    obStep = n;
+    const next = document.querySelector(`.ob-step[data-step="${obStep}"]`);
+    if (next) {
+      if (dir === 'back') {
+        next.style.transform = 'translateX(-40px)';
+        next.style.opacity = '0';
+      } else {
+        next.style.transform = 'translateX(40px)';
+        next.style.opacity = '0';
+      }
+      next.classList.add('active');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          next.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+          next.style.transform = 'translateX(0)';
+          next.style.opacity = '1';
+          setTimeout(() => { next.style.transition = ''; next.style.transform = ''; next.style.opacity = ''; }, 280);
+        });
+      });
+    }
+    obUpdateTopbar();
+    obUpdateFooter();
+
+    if (obStep === 8) {
+      clearTimeout(obLoadTimer);
+      obLoadTimer = setTimeout(() => {
+        if (obStep === 8) obGoTo(9);
+      }, 2200);
+    }
+  }, 100);
+}
+
+function obSkip() {
+  obFinish();
+}
+
+function obFinish() {
+  obSaveProfile();
+  localStorage.setItem('tracker-onboarding-done', '1');
+  hideOnboarding();
+  if (session) {
+    hideAuthScreen();
+    loadFromCloud();
+    checkNotifications();
+  } else {
+    showAuthScreen();
+  }
+}
+
+function obSaveProfile() {
+  if (!state.profile) state.profile = JSON.parse(JSON.stringify(DEFAULT_STATE.profile));
+
+  const focusEls = document.querySelectorAll('#ob-focus-list .ob-option.selected');
+  state.profile.focusAreas = Array.from(focusEls).map(e => e.dataset.val);
+
+  const genderSel = document.querySelector('#ob-gender-row .ob-gender-card.selected');
+  if (genderSel) state.profile.gender = genderSel.dataset.val;
+
+  state.profile.birthYear = obDrumValue('ob-year-drum', 1940);
+  state.profile.heightCm  = obDrumValue('ob-height-drum', 140);
+  state.profile.weightKg  = obDrumValue('ob-weight-drum', 30);
+
+  const fatSlider = document.getElementById('ob-fat-slider');
+  if (fatSlider) state.profile.bodyFat = parseInt(fatSlider.value);
+
+  const actSel = document.querySelector('#ob-activity-list .ob-option.selected');
+  if (actSel) state.profile.activityLevel = actSel.dataset.val;
+
+  const goalSel = document.querySelector('#ob-goal-list .ob-option.selected');
+  if (goalSel) state.profile.mainGoal = goalSel.dataset.val;
+
+  try { localStorage.setItem('tracker-state', JSON.stringify(state)); } catch(e) {}
+}
+
+function obToggleFocus(el) {
+  el.classList.toggle('selected');
+}
+
+function obSelectGender(el) {
+  document.querySelectorAll('#ob-gender-row .ob-gender-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function obSelectActivity(el) {
+  document.querySelectorAll('#ob-activity-list .ob-option').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function obSelectGoal(el) {
+  document.querySelectorAll('#ob-goal-list .ob-option').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function obUpdateFat(v) {
+  const pct = document.getElementById('ob-fat-pct');
+  const lbl = document.getElementById('ob-fat-label');
+  if (pct) pct.textContent = v + '%';
+  if (lbl) lbl.innerHTML = obGetFatLabel(parseInt(v));
+}
+
+function obBuildOutro() {
+  const container = document.getElementById('ob-outro-chips');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const focusLabels = { goals:'Ziele', sport:'Sport', work:'Arbeit', finance:'Finanzen', crypto:'Krypto' };
+  const genderLabel = { male:'Männlich', female:'Weiblich' };
+  const actLabels = { sedentary:'Inaktiv', light:'Leicht aktiv', moderate:'Moderat aktiv', active:'Aktiv', very_active:'Sehr aktiv' };
+  const goalLabels = { lose_weight:'Abnehmen', build_muscle:'Muskelaufbau', more_productive:'Produktivität', save_money:'Geld sparen', all:'Alles optimieren' };
+
+  const chips = [];
+
+  const focusEls = document.querySelectorAll('#ob-focus-list .ob-option.selected');
+  focusEls.forEach(e => { if (focusLabels[e.dataset.val]) chips.push(focusLabels[e.dataset.val]); });
+
+  const genderSel = document.querySelector('#ob-gender-row .ob-gender-card.selected');
+  if (genderSel && genderLabel[genderSel.dataset.val]) chips.push(genderLabel[genderSel.dataset.val]);
+
+  const birthYear = obDrumValue('ob-year-drum', 1940);
+  const age = new Date().getFullYear() - birthYear;
+  if (age > 0 && age < 120) chips.push(age + ' Jahre');
+
+  const height = obDrumValue('ob-height-drum', 140);
+  chips.push(height + ' cm');
+
+  const weight = obDrumValue('ob-weight-drum', 30);
+  chips.push(weight + ' kg');
+
+  const fatSlider = document.getElementById('ob-fat-slider');
+  if (fatSlider) chips.push(fatSlider.value + '% KFA');
+
+  const actSel = document.querySelector('#ob-activity-list .ob-option.selected');
+  if (actSel && actLabels[actSel.dataset.val]) chips.push(actLabels[actSel.dataset.val]);
+
+  const goalSel = document.querySelector('#ob-goal-list .ob-option.selected');
+  if (goalSel && goalLabels[goalSel.dataset.val]) chips.push(goalLabels[goalSel.dataset.val]);
+
+  chips.forEach(text => {
+    const chip = document.createElement('div');
+    chip.className = 'ob-outro-chip';
+    chip.textContent = text;
+    container.appendChild(chip);
+  });
+}
 
 // Re-sync when app comes back online or to foreground
 window.addEventListener('online', () => { if (session) loadFromCloud(); });
