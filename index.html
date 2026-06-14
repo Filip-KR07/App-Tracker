@@ -732,6 +732,158 @@
   }
 
   .logout-btn:active { color: var(--danger); }
+
+  /* ── Settings overlay ── */
+  #settings-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 250;
+    display: none;
+    flex-direction: column;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    animation: fadeIn 0.18s ease;
+  }
+
+  #settings-screen.open { display: flex; }
+
+  .settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 10px;
+    flex-shrink: 0;
+  }
+
+  .settings-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+  }
+
+  .settings-body { padding: 0 16px 40px; }
+
+  .settings-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 22px 4px 8px;
+  }
+
+  .settings-row {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .settings-row-left { flex: 1; min-width: 0; }
+  .settings-row-label { font-size: 16px; font-weight: 600; }
+  .settings-row-sub { font-size: 13px; color: var(--muted); margin-top: 1px; }
+
+  /* iOS-style toggle */
+  .toggle {
+    position: relative;
+    width: 51px;
+    height: 31px;
+    flex-shrink: 0;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--surface-3);
+    border-radius: 99px;
+    cursor: pointer;
+    transition: background 0.25s;
+  }
+
+  .toggle input:checked + .toggle-track { background: var(--success); }
+
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .toggle input:checked + .toggle-track::after { transform: translateX(20px); }
+
+  .settings-select {
+    background: var(--surface-2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    padding: 6px 10px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .settings-time-input {
+    background: var(--surface-2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    padding: 6px 10px;
+    outline: none;
+    -webkit-appearance: none;
+    width: 100px;
+  }
+
+  .gear-btn {
+    background: var(--fill);
+    border: none;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+
+  .gear-btn:active { opacity: 0.6; }
+  .gear-btn svg { width: 17px; height: 17px; stroke: var(--muted); stroke-width: 1.8; }
+
+  #notif-permission-banner {
+    background: rgba(10,132,255,0.12);
+    border: 0.5px solid rgba(10,132,255,0.3);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: var(--text);
+    display: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
 </style>
 </head>
 <body>
@@ -742,9 +894,14 @@
         <div class="greeting">Hallo Meister 👑</div>
         <div class="date" id="header-date"></div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding-top:8px">
+      <div style="display:flex;align-items:center;gap:10px;padding-top:8px">
         <span class="sync-dot" id="sync-dot"></span>
-        <button class="logout-btn" onclick="logout()">Abmelden</button>
+        <button class="gear-btn" onclick="openSettings()" title="Einstellungen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
@@ -1078,6 +1235,85 @@
   </nav>
 </div>
 
+<!-- Settings Screen -->
+<div id="settings-screen">
+  <div class="settings-header">
+    <div class="settings-title">Einstellungen</div>
+    <button class="btn btn-ghost" onclick="closeSettings()" style="height:36px;font-size:15px">Fertig</button>
+  </div>
+  <div class="settings-body">
+
+    <div id="notif-permission-banner" onclick="requestNotifPermission()">
+      🔔 Benachrichtigungen erlauben — tippe hier
+    </div>
+
+    <div class="settings-section-label">Benachrichtigungen</div>
+
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-label">Benachrichtigungen</div>
+        <div class="settings-row-sub">Master-Schalter</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="notif-enabled" onchange="saveNotifSettings()">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+
+    <div id="notif-detail-section">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Ziel-Deadline</div>
+          <div class="settings-row-sub">Erinnerung X Tage vorher</div>
+        </div>
+        <select class="settings-select" id="notif-deadline-days" onchange="saveNotifSettings()">
+          <option value="0">Aus</option>
+          <option value="1">1 Tag</option>
+          <option value="3" selected>3 Tage</option>
+          <option value="7">7 Tage</option>
+        </select>
+      </div>
+
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Tägliche Erinnerung</div>
+          <div class="settings-row-sub" id="daily-reminder-sub">Erinnert dich zum Loggen</div>
+        </div>
+        <label class="toggle" style="margin-right:10px">
+          <input type="checkbox" id="notif-daily" onchange="saveNotifSettings()">
+          <div class="toggle-track"></div>
+        </label>
+        <input type="time" class="settings-time-input" id="notif-daily-time" value="20:00" onchange="saveNotifSettings()">
+      </div>
+
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Wochenrückblick</div>
+          <div class="settings-row-sub" id="weekly-summary-sub">Zusammenfassung der Woche</div>
+        </div>
+        <label class="toggle" style="margin-right:10px">
+          <input type="checkbox" id="notif-weekly" onchange="saveNotifSettings()">
+          <div class="toggle-track"></div>
+        </label>
+        <select class="settings-select" id="notif-weekly-day" onchange="saveNotifSettings()" style="width:90px">
+          <option value="0">So</option>
+          <option value="1">Mo</option>
+          <option value="5">Fr</option>
+          <option value="6">Sa</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-section-label">Konto</div>
+
+    <div class="settings-row" style="cursor:pointer" onclick="logout()">
+      <div class="settings-row-label" style="color:var(--danger)">Abmelden</div>
+    </div>
+
+    <div class="settings-section-label" style="margin-top:32px;text-align:center;font-size:11px">Tracker · Deine persönliche App</div>
+  </div>
+</div>
+
 <!-- Auth Screen -->
 <div id="auth-screen">
   <div class="auth-box">
@@ -1187,7 +1423,17 @@ const DEFAULT_STATE = {
   sport: [],
   work: [],
   timer: { running: false, startedAt: null, project: '' },
-  finance: { hourlyRate: 0, entries: [] }
+  finance: { hourlyRate: 0, entries: [] },
+  notifications: {
+    enabled: false,
+    deadlineDays: 3,
+    dailyReminder: false,
+    dailyTime: '20:00',
+    weeklySummary: false,
+    weeklyDay: 0,
+    _lastDaily: null,
+    _lastWeekly: null
+  }
 };
 
 let state = DEFAULT_STATE;
@@ -2356,6 +2602,139 @@ function calcInterest() {
 }
 
 // ─────────────────────────────────────────────
+//  Einstellungen + Benachrichtigungen
+// ─────────────────────────────────────────────
+function openSettings() {
+  applyNotifSettingsToUI();
+  updatePermissionBanner();
+  document.getElementById('settings-screen').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settings-screen').classList.remove('open');
+}
+
+function applyNotifSettingsToUI() {
+  const n = state.notifications || {};
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+  setChk('notif-enabled', n.enabled);
+  setVal('notif-deadline-days', n.deadlineDays ?? 3);
+  setChk('notif-daily', n.dailyReminder);
+  setVal('notif-daily-time', n.dailyTime || '20:00');
+  setChk('notif-weekly', n.weeklySummary);
+  setVal('notif-weekly-day', n.weeklyDay ?? 0);
+  const detail = document.getElementById('notif-detail-section');
+  if (detail) detail.style.display = n.enabled ? 'block' : 'none';
+}
+
+function saveNotifSettings() {
+  if (!state.notifications) state.notifications = {};
+  const n = state.notifications;
+  const getChk = id => { const el = document.getElementById(id); return el ? el.checked : false; };
+  const getVal = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  n.enabled        = getChk('notif-enabled');
+  n.deadlineDays   = parseInt(getVal('notif-deadline-days')) || 0;
+  n.dailyReminder  = getChk('notif-daily');
+  n.dailyTime      = getVal('notif-daily-time') || '20:00';
+  n.weeklySummary  = getChk('notif-weekly');
+  n.weeklyDay      = parseInt(getVal('notif-weekly-day')) || 0;
+  const detail = document.getElementById('notif-detail-section');
+  if (detail) detail.style.display = n.enabled ? 'block' : 'none';
+
+  if (n.enabled && Notification.permission !== 'granted') {
+    requestNotifPermission();
+  }
+  save();
+}
+
+function updatePermissionBanner() {
+  const banner = document.getElementById('notif-permission-banner');
+  if (!banner) return;
+  if (!('Notification' in window)) { banner.style.display = 'none'; return; }
+  banner.style.display = Notification.permission === 'granted' ? 'none' : 'block';
+}
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  const result = await Notification.requestPermission();
+  updatePermissionBanner();
+  if (result === 'granted' && state.notifications && state.notifications.enabled) {
+    showAppNotification('🔔 Benachrichtigungen aktiv', 'Tracker wird dich jetzt erinnern.');
+  }
+}
+
+async function showAppNotification(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      reg.showNotification(title, { body, icon: 'icon.png', badge: 'icon.png', vibrate: [100,50,100] });
+    } else {
+      new Notification(title, { body });
+    }
+  } catch(e) {}
+}
+
+async function checkNotifications() {
+  if (!state.notifications || !state.notifications.enabled) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const n = state.notifications;
+  const today = todayStr();
+
+  // 1. Ziel-Deadline
+  if (n.deadlineDays > 0) {
+    for (const g of state.goals.filter(g => !g.done && g.deadline)) {
+      const d = daysUntil(g.deadline);
+      if (d >= 0 && d <= n.deadlineDays) {
+        const key = 'notif-dl-' + g.id + '-' + g.deadline;
+        if (!localStorage.getItem(key)) {
+          const msg = d === 0
+            ? `"${g.title}" ist heute fällig!`
+            : `"${g.title}" — noch ${d} Tag${d === 1 ? '' : 'e'}`;
+          await showAppNotification('⏰ Deadline', msg);
+          localStorage.setItem(key, '1');
+        }
+      }
+    }
+  }
+
+  // 2. Tägliche Erinnerung
+  if (n.dailyReminder && n._lastDaily !== today) {
+    const [h, m] = (n.dailyTime || '20:00').split(':').map(Number);
+    const now = new Date();
+    if (now.getHours() * 60 + now.getMinutes() >= h * 60 + m) {
+      await showAppNotification('📋 Tägliche Erinnerung', 'Vergiss nicht, deine heutigen Aktivitäten zu loggen!');
+      state.notifications._lastDaily = today;
+      save();
+    }
+  }
+
+  // 3. Wochenrückblick
+  if (n.weeklySummary) {
+    const ws = weekStart().toISOString().split('T')[0];
+    if (n._lastWeekly !== ws) {
+      const now = new Date();
+      if (now.getDay() === (n.weeklyDay ?? 0)) {
+        const workSecs = state.work.filter(s => isThisWeek(s.date)).reduce((a, s) => a + s.seconds, 0);
+        const workH    = (workSecs / 3600).toFixed(1);
+        const sportN   = state.sport.filter(e => isThisWeek(e.date)).length;
+        await showAppNotification('📊 Wochenrückblick', `${workH}h Arbeit · ${sportN} Sporteinheit${sportN === 1 ? '' : 'en'} diese Woche`);
+        state.notifications._lastWeekly = ws;
+        save();
+      }
+    }
+  }
+}
+
+async function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    await navigator.serviceWorker.register('sw.js');
+  } catch(e) {}
+}
+
+// ─────────────────────────────────────────────
 //  Init
 // ─────────────────────────────────────────────
 function initHeader() {
@@ -2402,10 +2781,12 @@ function init() {
   if (fd) fd.value = todayStr();
   renderDashboard();
   restoreRunningTimer();
+  registerSW();
 
   if (session) {
     hideAuthScreen();
     loadFromCloud();
+    checkNotifications();
   } else {
     showAuthScreen();
   }
@@ -2416,7 +2797,10 @@ document.addEventListener('DOMContentLoaded', init);
 // Re-sync when app comes back online or to foreground
 window.addEventListener('online', () => { if (session) loadFromCloud(); });
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && session) loadFromCloud();
+  if (!document.hidden && session) {
+    loadFromCloud();
+    checkNotifications();
+  }
 });
 </script>
 </body>
