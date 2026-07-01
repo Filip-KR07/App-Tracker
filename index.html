@@ -1496,6 +1496,57 @@
     font-weight: 500;
     color: var(--text);
   }
+
+  /* ── Extra-Modul ── */
+  .secret-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 4px 0 8px;
+  }
+
+  .secret-img {
+    width: 100%;
+    max-width: 440px;
+    border-radius: var(--radius);
+    display: block;
+    border: 0.5px solid var(--border);
+  }
+
+  .secret-placeholder {
+    width: 100%;
+    max-width: 440px;
+    min-height: 260px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px dashed var(--muted-2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .secret-mute-btn {
+    width: 100%;
+    max-width: 440px;
+    height: 52px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .secret-hint {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    max-width: 360px;
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
@@ -1808,6 +1859,24 @@
         </div>
       </div>
     </div>
+
+    <!-- Extra-Modul -->
+    <div class="view" id="view-extra">
+      <div class="section-header" style="margin-top:0">
+        <div class="section-title">Extra</div>
+      </div>
+      <div class="secret-wrap">
+        <img id="secret-img" class="secret-img" src="custom-image.png" alt=""
+             onerror="var p=document.getElementById('secret-placeholder');if(p)p.style.display='flex';this.style.display='none'">
+        <div id="secret-placeholder" class="secret-placeholder" style="display:none">
+          <div style="font-size:40px">🖼️</div>
+          <div>Lade <b>custom-image.png</b> ins Repo hoch</div>
+        </div>
+        <audio id="secret-audio" loop preload="auto" src="custom-sound.mp3"></audio>
+        <button id="secret-mute" class="btn secret-mute-btn" onclick="toggleSecretMute()">🔊 Ton an</button>
+        <div class="secret-hint">Der Ton läuft in Dauerschleife, solange dieses Menü offen ist.</div>
+      </div>
+    </div>
   </div>
 
   <!-- Bottom Nav -->
@@ -1842,6 +1911,11 @@
     <button class="nav-btn" data-view="markt" onclick="switchView('markt')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+      </svg>
+    </button>
+    <button class="nav-btn" id="nav-extra" data-view="extra" onclick="switchView('extra')" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 14.9 8.6 22 9.3 16.5 14 18.2 21 12 17.3 5.8 21 7.5 14 2 9.3 9.1 8.6"/>
       </svg>
     </button>
   </nav>
@@ -1914,6 +1988,19 @@
           <option value="6">Sa</option>
         </select>
       </div>
+    </div>
+
+    <div class="settings-section-label">Extra-Modul</div>
+
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-label">Extra-Modul in Leiste</div>
+        <div class="settings-row-sub">Zeigt den Extra-Tab mit Bild &amp; Ton unten an</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="module-enabled" onchange="toggleSecretModule()">
+        <div class="toggle-track"></div>
+      </label>
     </div>
 
     <div class="settings-section-label">Konto</div>
@@ -2602,6 +2689,7 @@ function applyLoadedState() {
 let currentView = 'dashboard';
 
 function switchView(view) {
+  if (currentView === 'extra' && view !== 'extra') stopSecretAudio();
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => {
@@ -2619,6 +2707,64 @@ function renderView(view) {
   else if (view === 'work') renderWork();
   else if (view === 'finance') renderFinance();
   else if (view === 'markt') renderMarkt();
+  else if (view === 'extra') renderSecret();
+}
+
+// ─────────────────────────────────────────────
+//  Extra-Modul (Bild + Ton in Dauerschleife)
+// ─────────────────────────────────────────────
+function isModuleEnabled() { return localStorage.getItem('tracker-module-enabled') !== '0'; }
+function isSecretMuted()    { return localStorage.getItem('tracker-module-muted') === '1'; }
+
+function applyModuleVisibility() {
+  const enabled = isModuleEnabled();
+  const btn = document.getElementById('nav-extra');
+  if (btn) btn.style.display = enabled ? '' : 'none';
+  const toggle = document.getElementById('module-enabled');
+  if (toggle) toggle.checked = enabled;
+  if (!enabled && currentView === 'extra') {
+    stopSecretAudio();
+    switchView('dashboard');
+  }
+}
+
+function toggleSecretModule() {
+  const toggle = document.getElementById('module-enabled');
+  localStorage.setItem('tracker-module-enabled', toggle.checked ? '1' : '0');
+  applyModuleVisibility();
+}
+
+function renderSecret() {
+  updateSecretMuteBtn();
+  const audio = document.getElementById('secret-audio');
+  if (!audio) return;
+  audio.muted = isSecretMuted();
+  const p = audio.play();
+  if (p && p.catch) p.catch(() => {});
+}
+
+function stopSecretAudio() {
+  const audio = document.getElementById('secret-audio');
+  if (audio) audio.pause();
+}
+
+function toggleSecretMute() {
+  const muted = !isSecretMuted();
+  localStorage.setItem('tracker-module-muted', muted ? '1' : '0');
+  const audio = document.getElementById('secret-audio');
+  if (audio) {
+    audio.muted = muted;
+    if (!muted) { const p = audio.play(); if (p && p.catch) p.catch(() => {}); }
+  }
+  updateSecretMuteBtn();
+}
+
+function updateSecretMuteBtn() {
+  const btn = document.getElementById('secret-mute');
+  if (!btn) return;
+  const muted = isSecretMuted();
+  btn.textContent = muted ? '🔇 Ton aus' : '🔊 Ton an';
+  btn.classList.toggle('btn-ghost', muted);
 }
 
 // ─────────────────────────────────────────────
@@ -3696,6 +3842,7 @@ function restoreRunningTimer() {
 
 function init() {
   applyConfig();
+  applyModuleVisibility();
   load();
   loadSession();
   loadCryptoCache();
@@ -4166,9 +4313,14 @@ function obBuildOutro() {
 // Re-sync when app comes back online or to foreground
 window.addEventListener('online', () => { if (session) loadFromCloud(); });
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && session) {
-    loadFromCloud();
-    checkNotifications();
+  if (document.hidden) {
+    stopSecretAudio();
+  } else {
+    if (currentView === 'extra') renderSecret();
+    if (session) {
+      loadFromCloud();
+      checkNotifications();
+    }
   }
 });
 </script>
