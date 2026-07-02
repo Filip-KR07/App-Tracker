@@ -721,6 +721,64 @@
   .sync-dot.offline { background: #FF9F0A; }
   .sync-dot.error   { background: var(--danger); }
 
+  /* ── Sync banner ── */
+  #sync-banner {
+    position: fixed;
+    top: calc(var(--safe-top) + 8px);
+    left: 12px;
+    right: 12px;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px 11px 16px;
+    background: var(--surface-2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translateY(-160%);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
+    pointer-events: none;
+  }
+
+  #sync-banner.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+  #sync-banner::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #FF9F0A;
+  }
+
+  #sync-banner[data-state="error"]::before { background: var(--danger); }
+
+  #sync-banner-text {
+    flex: 1;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.35;
+  }
+
+  #sync-banner button {
+    flex-shrink: 0;
+    background: var(--fill);
+    border: none;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 99px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    font-family: inherit;
+  }
+
+  #sync-banner button:active { opacity: 0.7; }
+
   .logout-btn {
     background: none;
     border: none;
@@ -1625,6 +1683,11 @@
         </button>
       </div>
     </div>
+  </div>
+
+  <div id="sync-banner" role="alert" aria-live="polite">
+    <span id="sync-banner-text">Offline – Änderungen werden lokal gespeichert.</span>
+    <button onclick="retrySync()">Erneut</button>
   </div>
 
   <div id="views">
@@ -2755,6 +2818,34 @@ function hideAuthScreen() {
 function setSyncStatus(status) {
   const dot = document.getElementById('sync-dot');
   if (dot) dot.className = 'sync-dot' + (status ? ' ' + status : '');
+
+  const banner = document.getElementById('sync-banner');
+  if (!banner) return;
+  if (status === 'offline' || status === 'error') {
+    const txt = document.getElementById('sync-banner-text');
+    if (txt) txt.textContent = status === 'offline'
+      ? 'Offline – Änderungen werden lokal gespeichert.'
+      : 'Synchronisierung fehlgeschlagen.';
+    banner.dataset.state = status;
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+async function retrySync() {
+  if (!session) { setSyncStatus(''); return; }
+  const btn = document.querySelector('#sync-banner button');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    if (await ensureSession()) {
+      await loadFromCloud();
+      scheduleCloudPush();
+    }
+  } catch (e) {
+    setSyncStatus('offline');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Erneut'; }
 }
 
 let syncTimer = null;
@@ -4539,6 +4630,7 @@ function obBuildOutro() {
 
 // Re-sync when app comes back online or to foreground
 window.addEventListener('online', () => { if (session) loadFromCloud(); });
+window.addEventListener('offline', () => { if (session) setSyncStatus('offline'); });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     stopSecretAudio();
