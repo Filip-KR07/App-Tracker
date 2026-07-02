@@ -752,6 +752,61 @@
 
   #settings-screen.open { display: flex; }
 
+  /* ── Info / Legal overlay ── */
+  #info-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 260;
+    display: none;
+    flex-direction: column;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    animation: fadeIn 0.18s ease;
+  }
+
+  #info-screen.open { display: flex; }
+
+  .info-body {
+    padding: 4px 20px 48px;
+    max-width: 720px;
+    width: 100%;
+    align-self: center;
+  }
+
+  .info-body h2 {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    margin: 26px 0 8px;
+  }
+
+  .info-body h2:first-child { margin-top: 6px; }
+
+  .info-body p, .info-body li {
+    font-size: 15px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.72);
+    margin-bottom: 10px;
+  }
+
+  .info-body ul { padding-left: 20px; margin-bottom: 10px; }
+
+  .info-body .info-note {
+    font-size: 13px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin: 8px 0 4px;
+    line-height: 1.5;
+  }
+
+  .info-body b { color: rgba(255,255,255,0.92); }
+
   .settings-header {
     display: flex;
     align-items: center;
@@ -792,6 +847,7 @@
   .settings-row-left { flex: 1; min-width: 0; }
   .settings-row-label { font-size: 16px; font-weight: 600; }
   .settings-row-sub { font-size: 13px; color: var(--muted); margin-top: 1px; }
+  .settings-row-chevron { font-size: 20px; color: var(--muted-2); font-weight: 300; flex-shrink: 0; }
 
   /* iOS-style toggle */
   .toggle {
@@ -2023,8 +2079,32 @@
       </div>
     </div>
 
+    <div class="settings-section-label">Rechtliches</div>
+
+    <div class="settings-row" style="cursor:pointer" onclick="openInfo('privacy')">
+      <div class="settings-row-label">Datenschutzerklärung</div>
+      <div class="settings-row-chevron">›</div>
+    </div>
+    <div class="settings-row" style="cursor:pointer" onclick="openInfo('terms')">
+      <div class="settings-row-label">Nutzungsbedingungen</div>
+      <div class="settings-row-chevron">›</div>
+    </div>
+    <div class="settings-row" style="cursor:pointer" onclick="openInfo('imprint')">
+      <div class="settings-row-label">Impressum</div>
+      <div class="settings-row-chevron">›</div>
+    </div>
+
     <div class="settings-section-label" style="margin-top:32px;text-align:center;font-size:11px" id="config-settings-footer">Tracker · Deine persönliche App</div>
   </div>
+</div>
+
+<!-- Info / Legal Screen -->
+<div id="info-screen">
+  <div class="settings-header">
+    <div class="settings-title" id="info-title">Info</div>
+    <button class="btn btn-ghost" onclick="closeInfo()" style="height:36px;font-size:15px">Fertig</button>
+  </div>
+  <div class="info-body" id="info-body"></div>
 </div>
 
 <!-- Onboarding Screen -->
@@ -3744,6 +3824,90 @@ function openSettings() {
 
 function closeSettings() {
   document.getElementById('settings-screen').classList.remove('open');
+}
+
+// ─────────────────────────────────────────────
+//  Info / Rechtstexte
+//  Platzhalter [...] vor Veröffentlichung ersetzen.
+// ─────────────────────────────────────────────
+const INFO_DOCS = {
+  privacy: {
+    title: 'Datenschutz',
+    html: `
+      <p><b>Stand:</b> [DATUM EINFÜGEN]</p>
+      <h2>1. Verantwortlicher</h2>
+      <p>[DEIN NAME]<br>[STRASSE, PLZ ORT]<br>E-Mail: [DEINE E-MAIL]</p>
+      <h2>2. Welche Daten wir verarbeiten</h2>
+      <ul>
+        <li><b>Kontodaten:</b> deine E-Mail-Adresse und ein verschlüsseltes Passwort (zur Anmeldung).</li>
+        <li><b>Profildaten:</b> optionale Angaben aus dem Onboarding (z.&nbsp;B. Geschlecht, Geburtsjahr, Größe, Gewicht, Körperfettanteil, Ziele).</li>
+        <li><b>Nutzungsinhalte:</b> die von dir erfassten Ziele, Sporteinheiten, Arbeitszeiten, Finanz- und Zinseinträge.</li>
+      </ul>
+      <h2>3. Zweck &amp; Rechtsgrundlage</h2>
+      <p>Die Daten dienen ausschließlich dazu, die App bereitzustellen und deine Einträge geräteübergreifend zu synchronisieren (Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO – Vertragserfüllung).</p>
+      <h2>4. Speicherung &amp; Auftragsverarbeitung</h2>
+      <p>Die Synchronisation erfolgt über <b>Supabase</b> (Datenbank &amp; Authentifizierung). Deine Inhalte werden dort deinem Konto zugeordnet gespeichert und sind durch Zugriffsregeln (Row-Level-Security) geschützt, sodass nur du sie lesen kannst. Zusätzlich werden Daten lokal auf deinem Gerät gespeichert, damit die App offline funktioniert.</p>
+      <div class="info-note">Hinweis: Mit dem Anbieter der Synchronisation ist ein Auftragsverarbeitungsvertrag (AVV) abzuschließen. [PRÜFEN]</div>
+      <h2>5. Weitergabe an Dritte</h2>
+      <p>Es findet keine Weitergabe zu Werbezwecken statt. Für Live-Kurse im Modul „Markt“ werden öffentliche Kursdaten von Drittanbietern (z.&nbsp;B. CoinGecko) abgerufen; dabei werden keine personenbezogenen Daten übermittelt.</p>
+      <h2>6. Speicherdauer</h2>
+      <p>Wir speichern deine Daten, bis du dein Konto löschst. Über <b>Einstellungen → Konto löschen</b> kannst du dein Konto und alle zugehörigen Daten jederzeit endgültig entfernen.</p>
+      <h2>7. Deine Rechte</h2>
+      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch. Wende dich dazu an die oben genannte Kontaktadresse. Zudem besteht ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde.</p>
+      <div class="info-note">Diese Vorlage ersetzt keine Rechtsberatung. Bitte vor Veröffentlichung rechtlich prüfen lassen.</div>
+    `
+  },
+  terms: {
+    title: 'Nutzungs­bedingungen',
+    html: `
+      <p><b>Stand:</b> [DATUM EINFÜGEN]</p>
+      <h2>1. Geltungsbereich</h2>
+      <p>Diese Bedingungen regeln die Nutzung der App „[APP-NAME]“ ([DEIN NAME]).</p>
+      <h2>2. Leistungsbeschreibung</h2>
+      <p>Die App ist ein persönliches Tracking-Werkzeug für Ziele, Sport, Arbeitszeit, Finanzen und Marktdaten. Es besteht kein Anspruch auf ununterbrochene Verfügbarkeit.</p>
+      <h2>3. Konto</h2>
+      <p>Für die Synchronisation ist ein Konto erforderlich. Du bist für die Geheimhaltung deiner Zugangsdaten selbst verantwortlich und versicherst, wahrheitsgemäße Angaben zu machen.</p>
+      <h2>4. Pflichten der Nutzer</h2>
+      <p>Du verpflichtest dich, die App nicht missbräuchlich zu nutzen und keine rechtswidrigen Inhalte zu speichern.</p>
+      <h2>5. Keine Fach-Beratung</h2>
+      <p>Angezeigte Werte (z.&nbsp;B. Zinsberechnungen, Marktkurse, Fitness-Angaben) sind unverbindliche Informationen und stellen keine Finanz-, Anlage- oder Gesundheitsberatung dar.</p>
+      <h2>6. Haftung</h2>
+      <p>Die Haftung richtet sich nach den gesetzlichen Bestimmungen. Für Datenverlust wird im Rahmen des gesetzlich Zulässigen keine Haftung übernommen; erstelle bei wichtigen Daten eigene Sicherungen.</p>
+      <h2>7. Änderungen</h2>
+      <p>Diese Bedingungen können angepasst werden. Die jeweils aktuelle Fassung ist in der App abrufbar.</p>
+      <div class="info-note">Vorlage ohne Gewähr – bitte vor Veröffentlichung rechtlich prüfen lassen.</div>
+    `
+  },
+  imprint: {
+    title: 'Impressum',
+    html: `
+      <h2>Angaben gemäß § 5 TMG / § 5 DDG</h2>
+      <p>[DEIN NAME]<br>[STRASSE]<br>[PLZ ORT]<br>[LAND]</p>
+      <h2>Kontakt</h2>
+      <p>E-Mail: [DEINE E-MAIL]<br>Telefon: [OPTIONAL]</p>
+      <h2>Verantwortlich für den Inhalt</h2>
+      <p>[DEIN NAME], Anschrift wie oben.</p>
+      <div class="info-note">Bei gewerblichem Verkauf ggf. zusätzliche Angaben nötig (USt-IdNr., Register, Aufsichtsbehörde). Bitte prüfen.</div>
+    `
+  }
+};
+
+function openInfo(type) {
+  const doc = INFO_DOCS[type];
+  if (!doc) return;
+  let html = doc.html;
+  if (typeof CONFIG !== 'undefined' && CONFIG.appName) {
+    html = html.replace(/\[APP-NAME\]/g, CONFIG.appName);
+  }
+  document.getElementById('info-title').textContent = doc.title;
+  document.getElementById('info-body').innerHTML = html;
+  const el = document.getElementById('info-screen');
+  el.scrollTop = 0;
+  el.classList.add('open');
+}
+
+function closeInfo() {
+  document.getElementById('info-screen').classList.remove('open');
 }
 
 function applyNotifSettingsToUI() {
