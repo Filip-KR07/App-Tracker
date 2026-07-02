@@ -35,6 +35,32 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ── Splash (verhindert weißen Blitz beim PWA-Start) ── */
+  #splash {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: #0D0D0E;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    transition: opacity 0.4s ease;
+  }
+  #splash svg { animation: splashPulse 1.6s ease-in-out infinite; }
+  #splash-name {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #FFFFFF;
+  }
+  #splash.hide { opacity: 0; pointer-events: none; }
+  @keyframes splashPulse {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50%      { transform: scale(1.06); opacity: 1; }
+  }
+
   html, body {
     height: 100%;
     background: var(--bg);
@@ -1666,6 +1692,18 @@
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <svg viewBox="0 0 512 512" width="88" height="88">
+    <g fill="#FFFFFF">
+      <path d="M128 322 L128 196 L196 250 L256 152 L316 250 L384 196 L384 322 Z"/>
+      <rect x="128" y="330" width="256" height="40" rx="12"/>
+      <circle cx="128" cy="188" r="15"/>
+      <circle cx="256" cy="142" r="16"/>
+      <circle cx="384" cy="188" r="15"/>
+    </g>
+  </svg>
+  <div id="splash-name">Tracker</div>
+</div>
 <div id="app">
   <div id="header">
     <div class="flex-between">
@@ -2487,6 +2525,16 @@ function applyConfig() {
   if (el('config-auth-title'))      el('config-auth-title').textContent      = CONFIG.appName;
   if (el('config-ob-app-name'))     el('config-ob-app-name').textContent     = CONFIG.appName;
   if (el('config-settings-footer')) el('config-settings-footer').textContent = CONFIG.appName + ' · ' + CONFIG.appSub;
+  if (el('splash-name'))            el('splash-name').textContent            = CONFIG.appName;
+}
+
+function hideSplash() {
+  const s = document.getElementById('splash');
+  if (!s) return;
+  setTimeout(() => {
+    s.classList.add('hide');
+    setTimeout(() => { if (s.parentNode) s.remove(); }, 450);
+  }, 350);
 }
 
 // ─────────────────────────────────────────────
@@ -4181,6 +4229,8 @@ function init() {
   } else {
     showAuthScreen();
   }
+
+  hideSplash();
 }
 
 document.addEventListener('DOMContentLoaded', init);
