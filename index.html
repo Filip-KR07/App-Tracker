@@ -6,7 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tracker">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#0D0D0E">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.png.HEIC">
 <title>Tracker</title>
 <style>
@@ -32,6 +34,32 @@
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Splash (verhindert weißen Blitz beim PWA-Start) ── */
+  #splash {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: #0D0D0E;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    transition: opacity 0.4s ease;
+  }
+  #splash svg { animation: splashPulse 1.6s ease-in-out infinite; }
+  #splash-name {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #FFFFFF;
+  }
+  #splash.hide { opacity: 0; pointer-events: none; }
+  @keyframes splashPulse {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50%      { transform: scale(1.06); opacity: 1; }
+  }
 
   html, body {
     height: 100%;
@@ -719,6 +747,64 @@
   .sync-dot.offline { background: #FF9F0A; }
   .sync-dot.error   { background: var(--danger); }
 
+  /* ── Sync banner ── */
+  #sync-banner {
+    position: fixed;
+    top: calc(var(--safe-top) + 8px);
+    left: 12px;
+    right: 12px;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px 11px 16px;
+    background: var(--surface-2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translateY(-160%);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
+    pointer-events: none;
+  }
+
+  #sync-banner.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+  #sync-banner::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #FF9F0A;
+  }
+
+  #sync-banner[data-state="error"]::before { background: var(--danger); }
+
+  #sync-banner-text {
+    flex: 1;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.35;
+  }
+
+  #sync-banner button {
+    flex-shrink: 0;
+    background: var(--fill);
+    border: none;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 99px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    font-family: inherit;
+  }
+
+  #sync-banner button:active { opacity: 0.7; }
+
   .logout-btn {
     background: none;
     border: none;
@@ -749,6 +835,61 @@
   }
 
   #settings-screen.open { display: flex; }
+
+  /* ── Info / Legal overlay ── */
+  #info-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 260;
+    display: none;
+    flex-direction: column;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    animation: fadeIn 0.18s ease;
+  }
+
+  #info-screen.open { display: flex; }
+
+  .info-body {
+    padding: 4px 20px 48px;
+    max-width: 720px;
+    width: 100%;
+    align-self: center;
+  }
+
+  .info-body h2 {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    margin: 26px 0 8px;
+  }
+
+  .info-body h2:first-child { margin-top: 6px; }
+
+  .info-body p, .info-body li {
+    font-size: 15px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.72);
+    margin-bottom: 10px;
+  }
+
+  .info-body ul { padding-left: 20px; margin-bottom: 10px; }
+
+  .info-body .info-note {
+    font-size: 13px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin: 8px 0 4px;
+    line-height: 1.5;
+  }
+
+  .info-body b { color: rgba(255,255,255,0.92); }
 
   .settings-header {
     display: flex;
@@ -790,6 +931,7 @@
   .settings-row-left { flex: 1; min-width: 0; }
   .settings-row-label { font-size: 16px; font-weight: 600; }
   .settings-row-sub { font-size: 13px; color: var(--muted); margin-top: 1px; }
+  .settings-row-chevron { font-size: 20px; color: var(--muted-2); font-weight: 300; flex-shrink: 0; }
 
   /* iOS-style toggle */
   .toggle {
@@ -1496,9 +1638,72 @@
     font-weight: 500;
     color: var(--text);
   }
+
+  /* ── Extra-Modul ── */
+  .secret-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 4px 0 8px;
+  }
+
+  .secret-img {
+    width: 100%;
+    max-width: 440px;
+    border-radius: var(--radius);
+    display: block;
+    border: 0.5px solid var(--border);
+  }
+
+  .secret-placeholder {
+    width: 100%;
+    max-width: 440px;
+    min-height: 260px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px dashed var(--muted-2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .secret-mute-btn {
+    width: 100%;
+    max-width: 440px;
+    height: 52px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .secret-hint {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    max-width: 360px;
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <svg viewBox="0 0 512 512" width="88" height="88">
+    <g fill="#FFFFFF">
+      <path d="M128 322 L128 196 L196 250 L256 152 L316 250 L384 196 L384 322 Z"/>
+      <rect x="128" y="330" width="256" height="40" rx="12"/>
+      <circle cx="128" cy="188" r="15"/>
+      <circle cx="256" cy="142" r="16"/>
+      <circle cx="384" cy="188" r="15"/>
+    </g>
+  </svg>
+  <div id="splash-name">Tracker</div>
+</div>
 <div id="app">
   <div id="header">
     <div class="flex-between">
@@ -1507,15 +1712,20 @@
         <div class="date" id="header-date"></div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;padding-top:8px">
-        <span class="sync-dot" id="sync-dot"></span>
-        <button class="gear-btn" onclick="openSettings()" title="Einstellungen">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <span class="sync-dot" id="sync-dot" role="status" aria-label="Synchronisierungsstatus"></span>
+        <button class="gear-btn" onclick="openSettings()" title="Einstellungen" aria-label="Einstellungen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
         </button>
       </div>
     </div>
+  </div>
+
+  <div id="sync-banner" role="alert" aria-live="polite">
+    <span id="sync-banner-text">Offline – Änderungen werden lokal gespeichert.</span>
+    <button onclick="retrySync()">Erneut</button>
   </div>
 
   <div id="views">
@@ -1762,7 +1972,7 @@
       <div class="card">
         <div class="card-title">
           <span>Krypto · <span id="crypto-status" style="text-transform:none;letter-spacing:0">—</span></span>
-          <button class="btn-icon" onclick="fetchCrypto()" title="Aktualisieren" style="width:30px;height:30px;font-size:16px">⟳</button>
+          <button class="btn-icon" onclick="fetchCrypto()" title="Aktualisieren" aria-label="Kurse aktualisieren" style="width:30px;height:30px;font-size:16px">⟳</button>
         </div>
         <div id="crypto-list"></div>
       </div>
@@ -1808,40 +2018,63 @@
         </div>
       </div>
     </div>
+
+    <!-- Extra-Modul -->
+    <div class="view" id="view-extra">
+      <div class="section-header" style="margin-top:0">
+        <div class="section-title">Extra</div>
+      </div>
+      <div class="secret-wrap">
+        <img id="secret-img" class="secret-img" src="custom-image.png" alt=""
+             onerror="var p=document.getElementById('secret-placeholder');if(p)p.style.display='flex';this.style.display='none'">
+        <div id="secret-placeholder" class="secret-placeholder" style="display:none">
+          <div style="font-size:40px">🖼️</div>
+          <div>Lade <b>custom-image.png</b> ins Repo hoch</div>
+        </div>
+        <audio id="secret-audio" loop preload="auto" src="custom-sound.mp3"></audio>
+        <button id="secret-mute" class="btn secret-mute-btn" onclick="toggleSecretMute()">🔊 Ton an</button>
+        <div class="secret-hint">Der Ton läuft in Dauerschleife, solange dieses Menü offen ist.</div>
+      </div>
+    </div>
   </div>
 
   <!-- Bottom Nav -->
-  <nav id="nav">
-    <button class="nav-btn active" data-view="dashboard" onclick="switchView('dashboard')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <nav id="nav" aria-label="Hauptnavigation">
+    <button class="nav-btn active" data-view="dashboard" onclick="switchView('dashboard')" aria-label="Dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
         <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
       </svg>
     </button>
-    <button class="nav-btn" data-view="goals" onclick="switchView('goals')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <button class="nav-btn" data-view="goals" onclick="switchView('goals')" aria-label="Ziele">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="1"/>
       </svg>
     </button>
-    <button class="nav-btn" data-view="sport" onclick="switchView('sport')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <button class="nav-btn" data-view="sport" onclick="switchView('sport')" aria-label="Sport">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
         <line x1="4" y1="22" x2="4" y2="15"/>
       </svg>
     </button>
-    <button class="nav-btn" data-view="work" onclick="switchView('work')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <button class="nav-btn" data-view="work" onclick="switchView('work')" aria-label="Arbeit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 15.5"/>
       </svg>
     </button>
-    <button class="nav-btn" data-view="finance" onclick="switchView('finance')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <button class="nav-btn" data-view="finance" onclick="switchView('finance')" aria-label="Finanzen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
       </svg>
     </button>
-    <button class="nav-btn" data-view="markt" onclick="switchView('markt')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <button class="nav-btn" data-view="markt" onclick="switchView('markt')" aria-label="Markt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+      </svg>
+    </button>
+    <button class="nav-btn" id="nav-extra" data-view="extra" onclick="switchView('extra')" style="display:none" aria-label="Extra">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <polygon points="12 2 14.9 8.6 22 9.3 16.5 14 18.2 21 12 17.3 5.8 21 7.5 14 2 9.3 9.1 8.6"/>
       </svg>
     </button>
   </nav>
@@ -1916,6 +2149,19 @@
       </div>
     </div>
 
+    <div class="settings-section-label">Extra-Modul</div>
+
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-label">Extra-Modul in Leiste</div>
+        <div class="settings-row-sub">Zeigt den Extra-Tab mit Bild &amp; Ton unten an</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="module-enabled" onchange="toggleSecretModule()">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+
     <div class="settings-section-label">Konto</div>
 
     <div class="settings-row" style="cursor:pointer" onclick="restartOnboarding()">
@@ -1927,14 +2173,45 @@
       <div class="settings-row-label" style="color:var(--danger)">Abmelden</div>
     </div>
 
+    <div class="settings-row" style="cursor:pointer" onclick="deleteAccount()">
+      <div class="settings-row-left">
+        <div class="settings-row-label" style="color:var(--danger)">Konto löschen</div>
+        <div class="settings-row-sub">Löscht dein Konto und alle Daten endgültig</div>
+      </div>
+    </div>
+
+    <div class="settings-section-label">Rechtliches</div>
+
+    <div class="settings-row" style="cursor:pointer" onclick="openInfo('privacy')">
+      <div class="settings-row-label">Datenschutzerklärung</div>
+      <div class="settings-row-chevron">›</div>
+    </div>
+    <div class="settings-row" style="cursor:pointer" onclick="openInfo('terms')">
+      <div class="settings-row-label">Nutzungsbedingungen</div>
+      <div class="settings-row-chevron">›</div>
+    </div>
+    <div class="settings-row" style="cursor:pointer" onclick="openInfo('imprint')">
+      <div class="settings-row-label">Impressum</div>
+      <div class="settings-row-chevron">›</div>
+    </div>
+
     <div class="settings-section-label" style="margin-top:32px;text-align:center;font-size:11px" id="config-settings-footer">Tracker · Deine persönliche App</div>
   </div>
+</div>
+
+<!-- Info / Legal Screen -->
+<div id="info-screen">
+  <div class="settings-header">
+    <div class="settings-title" id="info-title">Info</div>
+    <button class="btn btn-ghost" onclick="closeInfo()" style="height:36px;font-size:15px">Fertig</button>
+  </div>
+  <div class="info-body" id="info-body"></div>
 </div>
 
 <!-- Onboarding Screen -->
 <div id="onboarding-screen" style="display:none">
   <div id="ob-topbar">
-    <button id="ob-back" onclick="obBack()">&#8592;</button>
+    <button id="ob-back" onclick="obBack()" aria-label="Zurück">&#8592;</button>
     <div id="ob-progress-track"><div id="ob-progress-fill"></div></div>
     <div id="ob-phase-tag"></div>
   </div>
@@ -2232,11 +2509,12 @@
 //  ändern, Rest bleibt unberührt
 // ═══════════════════════════════════════════════
 const CONFIG = {
-  appName:     'MeinTracker',          // ← App-Name hier ändern
-  appIcon:     '🚀',                   // ← Emoji-Icon hier ändern
-  appSub:      'Deine persönliche App', // ← Untertitel
-  supabaseUrl: 'DEINE_SUPABASE_URL',   // ← Supabase Projekt-URL eintragen
+  appName:     'MeinTracker',            // ← App-Name hier ändern
+  appIcon:     '🚀',                     // ← Emoji-Icon hier ändern
+  appSub:      'Deine persönliche App',   // ← Untertitel
+  supabaseUrl: 'DEINE_SUPABASE_URL',     // ← Supabase Projekt-URL eintragen
   supabaseKey: 'DEIN_SUPABASE_ANON_KEY', // ← Supabase anon key eintragen
+  vapidPublicKey: 'DEIN_VAPID_PUBLIC_KEY', // ← optional für Server-Push (siehe PUSH.md)
 };
 
 function applyConfig() {
@@ -2248,6 +2526,16 @@ function applyConfig() {
   if (el('config-auth-title'))      el('config-auth-title').textContent      = CONFIG.appName;
   if (el('config-ob-app-name'))     el('config-ob-app-name').textContent     = CONFIG.appName;
   if (el('config-settings-footer')) el('config-settings-footer').textContent = CONFIG.appName + ' · ' + CONFIG.appSub;
+  if (el('splash-name'))            el('splash-name').textContent            = CONFIG.appName;
+}
+
+function hideSplash() {
+  const s = document.getElementById('splash');
+  if (!s) return;
+  setTimeout(() => {
+    s.classList.add('hide');
+    setTimeout(() => { if (s.parentNode) s.remove(); }, 450);
+  }, 350);
 }
 
 // ─────────────────────────────────────────────
@@ -2512,6 +2800,60 @@ function logout() {
   showAuthScreen();
 }
 
+async function deleteAccount() {
+  if (!confirm('Konto und ALLE Daten endgültig löschen?\n\nDas kann nicht rückgängig gemacht werden.')) return;
+  if (!confirm('Wirklich sicher? Alle Ziele, Einträge, Zeiten und Einstellungen werden gelöscht.')) return;
+
+  setSyncStatus('');
+  let serverDeleted = false;
+
+  if (session) {
+    try {
+      if (await ensureSession()) {
+        // 1. Bevorzugt: Edge Function löscht Datenzeile + Auth-User (Service Role)
+        try {
+          const res = await fetch(SUPA_URL + '/functions/v1/delete-account', {
+            method: 'POST', headers: authHeaders()
+          });
+          if (res.ok) serverDeleted = true;
+        } catch (e) {}
+
+        // 2. Fallback: Datenzeile direkt löschen (benötigt DELETE-RLS-Policy)
+        if (!serverDeleted) {
+          try {
+            await fetch(SUPA_URL + '/rest/v1/tracker_state?user_id=eq.' + session.user_id, {
+              method: 'DELETE', headers: authHeaders()
+            });
+          } catch (e) {}
+        }
+
+        // 3. Session serverseitig beenden
+        try {
+          await fetch(SUPA_URL + '/auth/v1/logout', { method: 'POST', headers: authHeaders() });
+        } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  // 4. Alles lokal entfernen
+  try {
+    localStorage.removeItem('tracker-state');
+    localStorage.removeItem('tracker-session');
+    localStorage.removeItem('tracker-crypto-cache');
+  } catch (e) {}
+
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  saveSession(null);
+
+  if (!serverDeleted) {
+    alert('Deine lokalen Daten wurden entfernt und du wurdest abgemeldet.\n\nHinweis: Die vollständige Kontolöschung auf dem Server benötigt die "delete-account"-Funktion (siehe supabase/functions).');
+  } else {
+    alert('Dein Konto und alle Daten wurden vollständig gelöscht.');
+  }
+
+  location.reload();
+}
+
 function showAuthScreen() {
   const el = document.getElementById('auth-screen');
   if (el) el.style.display = 'flex';
@@ -2525,6 +2867,34 @@ function hideAuthScreen() {
 function setSyncStatus(status) {
   const dot = document.getElementById('sync-dot');
   if (dot) dot.className = 'sync-dot' + (status ? ' ' + status : '');
+
+  const banner = document.getElementById('sync-banner');
+  if (!banner) return;
+  if (status === 'offline' || status === 'error') {
+    const txt = document.getElementById('sync-banner-text');
+    if (txt) txt.textContent = status === 'offline'
+      ? 'Offline – Änderungen werden lokal gespeichert.'
+      : 'Synchronisierung fehlgeschlagen.';
+    banner.dataset.state = status;
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+async function retrySync() {
+  if (!session) { setSyncStatus(''); return; }
+  const btn = document.querySelector('#sync-banner button');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    if (await ensureSession()) {
+      await loadFromCloud();
+      scheduleCloudPush();
+    }
+  } catch (e) {
+    setSyncStatus('offline');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Erneut'; }
 }
 
 let syncTimer = null;
@@ -2602,6 +2972,7 @@ function applyLoadedState() {
 let currentView = 'dashboard';
 
 function switchView(view) {
+  if (currentView === 'extra' && view !== 'extra') stopSecretAudio();
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => {
@@ -2619,6 +2990,64 @@ function renderView(view) {
   else if (view === 'work') renderWork();
   else if (view === 'finance') renderFinance();
   else if (view === 'markt') renderMarkt();
+  else if (view === 'extra') renderSecret();
+}
+
+// ─────────────────────────────────────────────
+//  Extra-Modul (Bild + Ton in Dauerschleife)
+// ─────────────────────────────────────────────
+function isModuleEnabled() { return localStorage.getItem('tracker-module-enabled') !== '0'; }
+function isSecretMuted()    { return localStorage.getItem('tracker-module-muted') === '1'; }
+
+function applyModuleVisibility() {
+  const enabled = isModuleEnabled();
+  const btn = document.getElementById('nav-extra');
+  if (btn) btn.style.display = enabled ? '' : 'none';
+  const toggle = document.getElementById('module-enabled');
+  if (toggle) toggle.checked = enabled;
+  if (!enabled && currentView === 'extra') {
+    stopSecretAudio();
+    switchView('dashboard');
+  }
+}
+
+function toggleSecretModule() {
+  const toggle = document.getElementById('module-enabled');
+  localStorage.setItem('tracker-module-enabled', toggle.checked ? '1' : '0');
+  applyModuleVisibility();
+}
+
+function renderSecret() {
+  updateSecretMuteBtn();
+  const audio = document.getElementById('secret-audio');
+  if (!audio) return;
+  audio.muted = isSecretMuted();
+  const p = audio.play();
+  if (p && p.catch) p.catch(() => {});
+}
+
+function stopSecretAudio() {
+  const audio = document.getElementById('secret-audio');
+  if (audio) audio.pause();
+}
+
+function toggleSecretMute() {
+  const muted = !isSecretMuted();
+  localStorage.setItem('tracker-module-muted', muted ? '1' : '0');
+  const audio = document.getElementById('secret-audio');
+  if (audio) {
+    audio.muted = muted;
+    if (!muted) { const p = audio.play(); if (p && p.catch) p.catch(() => {}); }
+  }
+  updateSecretMuteBtn();
+}
+
+function updateSecretMuteBtn() {
+  const btn = document.getElementById('secret-mute');
+  if (!btn) return;
+  const muted = isSecretMuted();
+  btn.textContent = muted ? '🔇 Ton aus' : '🔊 Ton an';
+  btn.classList.toggle('btn-ghost', muted);
 }
 
 // ─────────────────────────────────────────────
@@ -3537,6 +3966,90 @@ function closeSettings() {
   document.getElementById('settings-screen').classList.remove('open');
 }
 
+// ─────────────────────────────────────────────
+//  Info / Rechtstexte
+//  Platzhalter [...] vor Veröffentlichung ersetzen.
+// ─────────────────────────────────────────────
+const INFO_DOCS = {
+  privacy: {
+    title: 'Datenschutz',
+    html: `
+      <p><b>Stand:</b> [DATUM EINFÜGEN]</p>
+      <h2>1. Verantwortlicher</h2>
+      <p>[DEIN NAME]<br>[STRASSE, PLZ ORT]<br>E-Mail: [DEINE E-MAIL]</p>
+      <h2>2. Welche Daten wir verarbeiten</h2>
+      <ul>
+        <li><b>Kontodaten:</b> deine E-Mail-Adresse und ein verschlüsseltes Passwort (zur Anmeldung).</li>
+        <li><b>Profildaten:</b> optionale Angaben aus dem Onboarding (z.&nbsp;B. Geschlecht, Geburtsjahr, Größe, Gewicht, Körperfettanteil, Ziele).</li>
+        <li><b>Nutzungsinhalte:</b> die von dir erfassten Ziele, Sporteinheiten, Arbeitszeiten, Finanz- und Zinseinträge.</li>
+      </ul>
+      <h2>3. Zweck &amp; Rechtsgrundlage</h2>
+      <p>Die Daten dienen ausschließlich dazu, die App bereitzustellen und deine Einträge geräteübergreifend zu synchronisieren (Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO – Vertragserfüllung).</p>
+      <h2>4. Speicherung &amp; Auftragsverarbeitung</h2>
+      <p>Die Synchronisation erfolgt über <b>Supabase</b> (Datenbank &amp; Authentifizierung). Deine Inhalte werden dort deinem Konto zugeordnet gespeichert und sind durch Zugriffsregeln (Row-Level-Security) geschützt, sodass nur du sie lesen kannst. Zusätzlich werden Daten lokal auf deinem Gerät gespeichert, damit die App offline funktioniert.</p>
+      <div class="info-note">Hinweis: Mit dem Anbieter der Synchronisation ist ein Auftragsverarbeitungsvertrag (AVV) abzuschließen. [PRÜFEN]</div>
+      <h2>5. Weitergabe an Dritte</h2>
+      <p>Es findet keine Weitergabe zu Werbezwecken statt. Für Live-Kurse im Modul „Markt“ werden öffentliche Kursdaten von Drittanbietern (z.&nbsp;B. CoinGecko) abgerufen; dabei werden keine personenbezogenen Daten übermittelt.</p>
+      <h2>6. Speicherdauer</h2>
+      <p>Wir speichern deine Daten, bis du dein Konto löschst. Über <b>Einstellungen → Konto löschen</b> kannst du dein Konto und alle zugehörigen Daten jederzeit endgültig entfernen.</p>
+      <h2>7. Deine Rechte</h2>
+      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch. Wende dich dazu an die oben genannte Kontaktadresse. Zudem besteht ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde.</p>
+      <div class="info-note">Diese Vorlage ersetzt keine Rechtsberatung. Bitte vor Veröffentlichung rechtlich prüfen lassen.</div>
+    `
+  },
+  terms: {
+    title: 'Nutzungs­bedingungen',
+    html: `
+      <p><b>Stand:</b> [DATUM EINFÜGEN]</p>
+      <h2>1. Geltungsbereich</h2>
+      <p>Diese Bedingungen regeln die Nutzung der App „[APP-NAME]“ ([DEIN NAME]).</p>
+      <h2>2. Leistungsbeschreibung</h2>
+      <p>Die App ist ein persönliches Tracking-Werkzeug für Ziele, Sport, Arbeitszeit, Finanzen und Marktdaten. Es besteht kein Anspruch auf ununterbrochene Verfügbarkeit.</p>
+      <h2>3. Konto</h2>
+      <p>Für die Synchronisation ist ein Konto erforderlich. Du bist für die Geheimhaltung deiner Zugangsdaten selbst verantwortlich und versicherst, wahrheitsgemäße Angaben zu machen.</p>
+      <h2>4. Pflichten der Nutzer</h2>
+      <p>Du verpflichtest dich, die App nicht missbräuchlich zu nutzen und keine rechtswidrigen Inhalte zu speichern.</p>
+      <h2>5. Keine Fach-Beratung</h2>
+      <p>Angezeigte Werte (z.&nbsp;B. Zinsberechnungen, Marktkurse, Fitness-Angaben) sind unverbindliche Informationen und stellen keine Finanz-, Anlage- oder Gesundheitsberatung dar.</p>
+      <h2>6. Haftung</h2>
+      <p>Die Haftung richtet sich nach den gesetzlichen Bestimmungen. Für Datenverlust wird im Rahmen des gesetzlich Zulässigen keine Haftung übernommen; erstelle bei wichtigen Daten eigene Sicherungen.</p>
+      <h2>7. Änderungen</h2>
+      <p>Diese Bedingungen können angepasst werden. Die jeweils aktuelle Fassung ist in der App abrufbar.</p>
+      <div class="info-note">Vorlage ohne Gewähr – bitte vor Veröffentlichung rechtlich prüfen lassen.</div>
+    `
+  },
+  imprint: {
+    title: 'Impressum',
+    html: `
+      <h2>Angaben gemäß § 5 TMG / § 5 DDG</h2>
+      <p>[DEIN NAME]<br>[STRASSE]<br>[PLZ ORT]<br>[LAND]</p>
+      <h2>Kontakt</h2>
+      <p>E-Mail: [DEINE E-MAIL]<br>Telefon: [OPTIONAL]</p>
+      <h2>Verantwortlich für den Inhalt</h2>
+      <p>[DEIN NAME], Anschrift wie oben.</p>
+      <div class="info-note">Bei gewerblichem Verkauf ggf. zusätzliche Angaben nötig (USt-IdNr., Register, Aufsichtsbehörde). Bitte prüfen.</div>
+    `
+  }
+};
+
+function openInfo(type) {
+  const doc = INFO_DOCS[type];
+  if (!doc) return;
+  let html = doc.html;
+  if (typeof CONFIG !== 'undefined' && CONFIG.appName) {
+    html = html.replace(/\[APP-NAME\]/g, CONFIG.appName);
+  }
+  document.getElementById('info-title').textContent = doc.title;
+  document.getElementById('info-body').innerHTML = html;
+  const el = document.getElementById('info-screen');
+  el.scrollTop = 0;
+  el.classList.add('open');
+}
+
+function closeInfo() {
+  document.getElementById('info-screen').classList.remove('open');
+}
+
 function applyNotifSettingsToUI() {
   const n = state.notifications || {};
   const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
@@ -3567,6 +4080,8 @@ function saveNotifSettings() {
 
   if (n.enabled && Notification.permission !== 'granted') {
     requestNotifPermission();
+  } else if (n.enabled && Notification.permission === 'granted') {
+    subscribeToPush();
   }
   save();
 }
@@ -3582,8 +4097,11 @@ async function requestNotifPermission() {
   if (!('Notification' in window)) return;
   const result = await Notification.requestPermission();
   updatePermissionBanner();
-  if (result === 'granted' && state.notifications && state.notifications.enabled) {
-    showAppNotification('🔔 Benachrichtigungen aktiv', 'Tracker wird dich jetzt erinnern.');
+  if (result === 'granted') {
+    subscribeToPush();
+    if (state.notifications && state.notifications.enabled) {
+      showAppNotification('🔔 Benachrichtigungen aktiv', 'Tracker wird dich jetzt erinnern.');
+    }
   }
 }
 
@@ -3657,6 +4175,48 @@ async function registerSW() {
   } catch(e) {}
 }
 
+// ── Web-Push-Subscription (Server-Push via Supabase, siehe PUSH.md) ──
+function pushConfigured() {
+  return CONFIG.vapidPublicKey && !CONFIG.vapidPublicKey.startsWith('DEIN_');
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+async function subscribeToPush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!session || !pushConfigured()) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(CONFIG.vapidPublicKey)
+      });
+    }
+    if (!(await ensureSession())) return;
+    await fetch(SUPA_URL + '/rest/v1/push_subscriptions', {
+      method: 'POST',
+      headers: Object.assign(authHeaders(), { 'Prefer': 'resolution=merge-duplicates' }),
+      body: JSON.stringify({
+        user_id: session.user_id,
+        endpoint: sub.endpoint,
+        subscription: sub.toJSON(),
+        updated_at: new Date().toISOString()
+      })
+    });
+  } catch (e) {}
+}
+
 // ─────────────────────────────────────────────
 //  Init
 // ─────────────────────────────────────────────
@@ -3696,6 +4256,7 @@ function restoreRunningTimer() {
 
 function init() {
   applyConfig();
+  applyModuleVisibility();
   load();
   loadSession();
   loadCryptoCache();
@@ -3716,6 +4277,8 @@ function init() {
   } else {
     showAuthScreen();
   }
+
+  hideSplash();
 }
 
 document.addEventListener('DOMContentLoaded', init);
@@ -4165,10 +4728,16 @@ function obBuildOutro() {
 
 // Re-sync when app comes back online or to foreground
 window.addEventListener('online', () => { if (session) loadFromCloud(); });
+window.addEventListener('offline', () => { if (session) setSyncStatus('offline'); });
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && session) {
-    loadFromCloud();
-    checkNotifications();
+  if (document.hidden) {
+    stopSecretAudio();
+  } else {
+    if (currentView === 'extra') renderSecret();
+    if (session) {
+      loadFromCloud();
+      checkNotifications();
+    }
   }
 });
 </script>

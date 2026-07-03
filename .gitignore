@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Capacitor build output (aus Web-Assets generiert)
+www/
+
+# Generierte Icon-PNGs (aus icon.svg via `npm run icons`)
+icons/
+
+# Native iOS-Projekt (mit `npx cap add ios` lokal erzeugt)
+ios/
+
+# System
+.DS_Store

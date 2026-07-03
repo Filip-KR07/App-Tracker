@@ -1,0 +1,15 @@
+{
+  "name": "Tracker",
+  "short_name": "Tracker",
+  "description": "Deine persönliche App für Ziele, Sport, Arbeit & Finanzen.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D0D0E",
+  "theme_color": "#0D0D0E",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
