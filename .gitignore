@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Capacitor build output (aus Web-Assets generiert)
+www/
+
+# Native iOS-Projekt (mit `npx cap add ios` lokal erzeugt)
+ios/
+
+# System
+.DS_Store
