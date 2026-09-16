@@ -193,6 +193,7 @@
   }
 
   .chevron { font-size: 15px; color: var(--muted-2); font-weight: 300; }
+  .claude-live { font-size: 12px; color: var(--success); font-weight: 500; margin-left: 6px; }
 
   /* ── Stat numbers ── */
   .stat-num {
@@ -1739,6 +1740,7 @@
         <div class="card-title">Arbeitszeit heute <span class="chevron">›</span></div>
         <div class="stat-num" id="dash-work-today">0h 0m</div>
         <div class="stat-label" id="dash-work-label">— nicht getrackt</div>
+        <div class="stat-label" id="dash-claude-label" style="display:none;margin-top:4px"></div>
       </div>
 
       <div class="stat-row" style="margin-bottom:12px">
@@ -1878,6 +1880,23 @@
           <div class="num" id="work-week-total">0h</div>
           <div class="lbl">Diese Woche</div>
         </div>
+      </div>
+
+      <!-- Claude Code (automatisch vom PC gemeldet) -->
+      <div class="card" id="claude-card">
+        <div class="card-title">Claude Code <span id="claude-live" class="claude-live" style="display:none">● läuft</span></div>
+        <div class="stat-row" style="margin-bottom:12px">
+          <div class="stat-box">
+            <div class="num" id="claude-today">0h 0m</div>
+            <div class="lbl">Heute</div>
+          </div>
+          <div class="stat-box">
+            <div class="num" id="claude-week">0h 0m</div>
+            <div class="lbl">Diese Woche</div>
+          </div>
+        </div>
+        <div id="claude-breakdown"></div>
+        <div class="text-muted" id="claude-hint" style="font-size:12px;margin-top:8px">Wird automatisch erfasst, sobald der Claude-Code-Hook auf dem PC eingerichtet ist.</div>
       </div>
 
       <!-- Breakdown -->
@@ -2953,10 +2972,131 @@ async function loadFromCloud() {
       scheduleCloudPush();
     }
     setSyncStatus('synced');
+    fetchClaudeSessions();
   } catch(e) {
     setSyncStatus('offline');
   }
 }
+
+// ─────────────────────────────────────────────
+//  Claude Code Sessions (Tabelle claude_sessions, vom PC-Hook befüllt)
+// ─────────────────────────────────────────────
+let claudeSessions = [];
+const CLAUDE_RUNNING_MS = 30 * 60 * 1000; // zuletzt vor < 30 min gemeldet = läuft noch
+
+function loadClaudeCache() {
+  try {
+    const raw = localStorage.getItem('tracker-claude-sessions');
+    if (raw) claudeSessions = JSON.parse(raw) || [];
+  } catch(e) { claudeSessions = []; }
+}
+
+function localDateStr(iso) {
+  const d = new Date(iso);
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+
+function claudeIsRunning(s) {
+  return !!s.running && (Date.now() - new Date(s.ended_at).getTime()) < CLAUDE_RUNNING_MS;
+}
+
+// Claude-Sessions im gleichen Format wie manuelle Work-Sessions
+function claudeAsWork() {
+  return claudeSessions.map(s => ({
+    id: 'cc:' + s.id,
+    project: 'Claude Code · ' + (s.project || 'Session'),
+    seconds: s.seconds || 0,
+    date: localDateStr(s.started_at),
+    ts: new Date(s.started_at).getTime(),
+    claude: true,
+    running: claudeIsRunning(s)
+  }));
+}
+
+function allWork() {
+  return state.work.concat(claudeAsWork());
+}
+
+async function fetchClaudeSessions() {
+  if (!session) return;
+  try {
+    if (!(await ensureSession())) return;
+    const since = new Date(Date.now() - 90 * 86400000).toISOString();
+    const res = await fetch(SUPA_URL + '/rest/v1/claude_sessions?user_id=eq.' + session.user_id +
+      '&started_at=gte.' + encodeURIComponent(since) + '&select=*&order=started_at.desc&limit=1000', {
+      headers: authHeaders()
+    });
+    if (!res.ok) return; // Tabelle fehlt oder kein Zugriff → still bleiben
+    claudeSessions = await res.json();
+    try { localStorage.setItem('tracker-claude-sessions', JSON.stringify(claudeSessions)); } catch(e) {}
+    renderClaude();
+    if (currentView === 'work') renderWork();
+    renderDashboard();
+  } catch(e) {}
+}
+
+async function deleteClaudeSession(id) {
+  if (!session) return;
+  try {
+    if (!(await ensureSession())) return;
+    await fetch(SUPA_URL + '/rest/v1/claude_sessions?id=eq.' + encodeURIComponent(id), {
+      method: 'DELETE', headers: authHeaders()
+    });
+  } catch(e) {}
+  claudeSessions = claudeSessions.filter(s => s.id !== id);
+  try { localStorage.setItem('tracker-claude-sessions', JSON.stringify(claudeSessions)); } catch(e) {}
+  renderClaude(); renderWork(); renderDashboard();
+}
+
+function claudeTotals() {
+  const w = claudeAsWork();
+  return {
+    today: w.filter(s => s.date === todayStr()).reduce((a,s) => a + s.seconds, 0),
+    week:  w.filter(s => isThisWeek(s.date)).reduce((a,s) => a + s.seconds, 0),
+    running: w.some(s => s.running)
+  };
+}
+
+function renderClaude() {
+  const t = claudeTotals();
+  const todayEl = document.getElementById('claude-today');
+  const weekEl  = document.getElementById('claude-week');
+  const liveEl  = document.getElementById('claude-live');
+  const hintEl  = document.getElementById('claude-hint');
+  if (todayEl) todayEl.textContent = fmtHM(t.today);
+  if (weekEl)  weekEl.textContent  = fmtHM(t.week);
+  if (liveEl)  liveEl.style.display = t.running ? 'inline' : 'none';
+  if (hintEl)  hintEl.style.display = claudeSessions.length ? 'none' : 'block';
+
+  const bd = document.getElementById('claude-breakdown');
+  if (!bd) return;
+  const week = claudeAsWork().filter(s => isThisWeek(s.date));
+  if (!week.length) { bd.innerHTML = ''; return; }
+  const byProject = {};
+  week.forEach(s => {
+    const name = s.project.replace('Claude Code · ', '');
+    byProject[name] = (byProject[name] || 0) + s.seconds;
+  });
+  const maxSec = Math.max(...Object.values(byProject));
+  bd.innerHTML = Object.entries(byProject)
+    .sort((a,b) => b[1] - a[1])
+    .map(([proj, secs]) => {
+      const pct = Math.round(secs / maxSec * 100);
+      return `<div class="breakdown-item">
+        <div class="breakdown-label">${escHtml(proj)}</div>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${pct}%"></div></div>
+        <div class="breakdown-val">${fmtHM(secs)}</div>
+      </div>`;
+    }).join('');
+}
+
+// Regelmäßig nachladen, solange die App sichtbar ist
+setInterval(() => { if (document.visibilityState === 'visible') fetchClaudeSessions(); }, 60000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') fetchClaudeSessions();
+});
 
 function applyLoadedState() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
@@ -3055,7 +3195,8 @@ function updateSecretMuteBtn() {
 // ─────────────────────────────────────────────
 function renderDashboard() {
   // Arbeitszeit heute (include running timer)
-  const todayWork = state.work
+  const work = allWork();
+  const todayWork = work
     .filter(s => s.date === todayStr())
     .reduce((sum,s) => sum + s.seconds, 0);
   let liveToday = todayWork;
@@ -3070,8 +3211,21 @@ function renderDashboard() {
   if (lbl && state.timer.running) lbl.style.color = 'var(--accent)';
   else if (lbl) lbl.style.color = '';
 
+  // Claude-Code-Anteil
+  const ct = claudeTotals();
+  const cl = document.getElementById('dash-claude-label');
+  if (cl) {
+    if (ct.today > 0 || ct.running) {
+      cl.style.display = 'block';
+      cl.textContent = (ct.running ? '● Claude Code läuft · ' : 'davon Claude Code: ') + fmtHM(ct.today);
+      cl.style.color = ct.running ? 'var(--success)' : '';
+    } else {
+      cl.style.display = 'none';
+    }
+  }
+
   // Week work
-  const weekWork = state.work
+  const weekWork = work
     .filter(s => isThisWeek(s.date))
     .reduce((sum,s) => sum + s.seconds, 0);
   let liveWeek = weekWork;
@@ -3504,14 +3658,15 @@ function updateTimerUI() {
 }
 
 function updateWorkStats() {
-  const todaySecs = state.work
+  const work = allWork();
+  const todaySecs = work
     .filter(s => s.date === todayStr())
     .reduce((sum,s) => sum + s.seconds, 0);
   let liveToday = todaySecs;
   if (state.timer.running && state.timer.startedAt) {
     liveToday += Math.floor((Date.now() - state.timer.startedAt) / 1000);
   }
-  const weekSecs = state.work
+  const weekSecs = work
     .filter(s => isThisWeek(s.date))
     .reduce((sum,s) => sum + s.seconds, 0);
   let liveWeek = weekSecs;
@@ -3527,17 +3682,20 @@ function updateWorkStats() {
 function renderWork() {
   updateTimerUI();
   updateWorkStats();
+  renderClaude();
 
   // Breakdown
   const breakdown = document.getElementById('work-breakdown');
-  const weekSessions = state.work.filter(s => isThisWeek(s.date));
+  const work = allWork();
+  const weekSessions = work.filter(s => isThisWeek(s.date));
   if (breakdown) {
     if (weekSessions.length === 0) {
       breakdown.innerHTML = '<div class="text-muted" style="font-size:13px">Noch keine Sessions diese Woche</div>';
     } else {
       const byProject = {};
       weekSessions.forEach(s => {
-        byProject[s.project] = (byProject[s.project]||0) + s.seconds;
+        const key = s.claude ? 'Claude Code' : s.project;
+        byProject[key] = (byProject[key]||0) + s.seconds;
       });
       const maxSec = Math.max(...Object.values(byProject));
       breakdown.innerHTML = Object.entries(byProject)
@@ -3556,13 +3714,13 @@ function renderWork() {
   // Sessions list
   const listEl = document.getElementById('work-sessions-list');
   if (!listEl) return;
-  if (state.work.length === 0) {
+  if (work.length === 0) {
     listEl.innerHTML = '<div class="empty"><div class="empty-icon">⏱️</div>Noch keine Sessions</div>';
     return;
   }
 
   const groups = {};
-  state.work.forEach(s => {
+  work.slice().sort((a,b) => (b.ts||0) - (a.ts||0)).forEach(s => {
     if (!groups[s.date]) groups[s.date] = [];
     groups[s.date].push(s);
   });
@@ -3572,12 +3730,12 @@ function renderWork() {
     const label = isToday(date) ? 'Heute' : formatDate(date);
     const items = groups[date].map(s => `
       <div class="log-item">
-        <div class="log-icon">⏱</div>
+        <div class="log-icon">${s.claude ? '🤖' : '⏱'}</div>
         <div class="log-body">
           <div class="log-title">${escHtml(s.project)}</div>
-          <div class="log-sub">${fmtDuration(s.seconds)}</div>
+          <div class="log-sub">${fmtDuration(s.seconds)}${s.running ? ' · <span style="color:var(--success)">läuft</span>' : ''}</div>
         </div>
-        <button class="log-delete" onclick="deleteWorkSession('${s.id}')">×</button>
+        <button class="log-delete" onclick="${s.claude ? `deleteClaudeSession('${escHtml(s.id.slice(3))}')` : `deleteWorkSession('${s.id}')`}">×</button>
       </div>`).join('');
     return `<div class="log-group-label">${label}</div>${items}`;
   }).join('');
@@ -3704,7 +3862,7 @@ function renderFinance() {
   if (rateDisplay) rateDisplay.textContent = hourlyRate > 0 ? 'Aktuell: ' + hourlyRate.toFixed(2) + ' €/h' : 'Noch kein Stundenlohn gesetzt';
 
   // Earnings from work this week
-  const weekSecs = state.work.filter(s => isThisWeek(s.date)).reduce((sum, s) => sum + s.seconds, 0);
+  const weekSecs = allWork().filter(s => isThisWeek(s.date)).reduce((sum, s) => sum + s.seconds, 0);
   let liveSecs = weekSecs;
   if (state.timer.running && state.timer.startedAt && isThisWeek(todayStr())) {
     liveSecs += Math.floor((Date.now() - state.timer.startedAt) / 1000);
@@ -4157,7 +4315,7 @@ async function checkNotifications() {
     if (n._lastWeekly !== ws) {
       const now = new Date();
       if (now.getDay() === (n.weeklyDay ?? 0)) {
-        const workSecs = state.work.filter(s => isThisWeek(s.date)).reduce((a, s) => a + s.seconds, 0);
+        const workSecs = allWork().filter(s => isThisWeek(s.date)).reduce((a, s) => a + s.seconds, 0);
         const workH    = (workSecs / 3600).toFixed(1);
         const sportN   = state.sport.filter(e => isThisWeek(e.date)).length;
         await showAppNotification('📊 Wochenrückblick', `${workH}h Arbeit · ${sportN} Sporteinheit${sportN === 1 ? '' : 'en'} diese Woche`);
@@ -4260,6 +4418,7 @@ function init() {
   load();
   loadSession();
   loadCryptoCache();
+  loadClaudeCache();
   initHeader();
   initSportDate();
   const fd = document.getElementById('finance-date');
